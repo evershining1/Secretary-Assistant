@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Test</title>
+    <style>
+        body { font-family: system-ui; padding: 40px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>App Debug Test</h1>
+    <div id="status">Testing...</div>
+    
+    <script type="module">
+        const status = document.getElementById('status');
+        
+        try {
+            // Test 1: React
+            status.innerHTML += '<p class="success">✓ HTML loaded</p>';
+            
+            import('react').then(() => {
+                status.innerHTML += '<p class="success">✓ React imports</p>';
+            }).catch(e => {
+                status.innerHTML += `<p class="error">✗ React failed: ${e.message}</p>`;
+            });
+            
+            // Test 2: Supabase
+            import('@supabase/supabase-js').then(() => {
+                status.innerHTML += '<p class="success">✓ Supabase imports</p>';
+            }).catch(e => {
+                status.innerHTML += `<p class="error">✗ Supabase failed: ${e.message}</p>`;
+            });
+            
+            // Test 3: Main app
+            import('./src/main.jsx').then(() => {
+                status.innerHTML += '<p class="success">✓ Main app loaded</p>';
+            }).catch(e => {
+                status.innerHTML += `<p class="error">✗ Main app failed: ${e.message}</p>`;
+                status.innerHTML += `<pre>${e.stack}</pre>`;
+            });
+            
+        } catch (e) {
+            status.innerHTML += `<p class="error">✗ Critical error: ${e.message}</p>`;
+        }
+    </script>
+</body>
+</html>

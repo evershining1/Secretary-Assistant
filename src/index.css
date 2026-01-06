@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Light Mode: Pure White & Unified Salmon */
+    /* Background: Pure White */
+    --color-bg-primary: 255 255 255;
+    /* Cards: Pure White */
+    --color-bg-secondary: 255 255 255;
+
+    /* Text - High Contrast */
+    --color-text-primary: 15 23 42;
+    /* slate-900 */
+    --color-text-secondary: 71 85 105;
+    /* slate-600 - Darker for better visibility on white */
+
+    /* Accent: Unified Salmon (from image) */
+    --color-accent: 255 107 107;
+    --color-accent-light: 255 230 230;
+    /* Very pale salmon for backgrounds */
+  }
+
+  .dark {
+    /* Dark Mode: Pitch Black & Unified Salmon */
+    /* Background: Pitch Black */
+    --color-bg-primary: 0 0 0;
+    /* Cards: Dark Gray for visibility separation */
+    --color-bg-secondary: 24 24 27;
+    /* zinc-900 */
+
+    /* Text - High Contrast */
+    --color-text-primary: 255 255 255;
+    /* white */
+    --color-text-secondary: 161 161 170;
+    /* zinc-400 */
+
+    /* Accent: Unified Salmon (Identical to Light Mode) */
+    --color-accent: 255 107 107;
+    --color-accent-light: 63 26 26;
+    /* Dark reddish bg for dark mode */
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: rgb(var(--color-bg-primary));
+  color: rgb(var(--color-text-primary));
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
