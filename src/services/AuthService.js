@@ -152,6 +152,9 @@ export class AuthService {
             streak: data.streak,
             theme: data.theme,
             integrations: data.integrations,
+            tier: data.tier,
+            is_admin: data.is_admin,
+            metadata: data.metadata || {},
             onboardingRequired: !data.name || data.name === 'User'
         });
 
@@ -176,7 +179,10 @@ export class AuthService {
                 level: 1,
                 streak: 0,
                 theme: 'light',
-                integrations: { google: false, outlook: false, apple: false }
+                integrations: { google: false, outlook: false, apple: false },
+                tier: 'free',
+                is_admin: false,
+                metadata: {}
             })
             .select()
             .single();

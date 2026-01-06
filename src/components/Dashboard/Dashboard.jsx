@@ -7,6 +7,7 @@ import SmartSuggest from './SmartSuggest';
 import { Sparkles } from 'lucide-react';
 import MilestoneWidget from './MilestoneWidget';
 import OnboardingModal from '../Auth/OnboardingModal';
+import AdBanner from '../UI/AdBanner';
 
 function Dashboard() {
     const syncExternalEvents = useStore(state => state.syncExternalEvents);
@@ -40,6 +41,7 @@ function Dashboard() {
             <ProgressWidget />
             <TaskList />
             <SmartSuggest />
+            <AdBanner placement="dashboard" />
             <OnboardingModal />
         </div>
     );

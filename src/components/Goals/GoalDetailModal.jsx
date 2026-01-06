@@ -60,6 +60,18 @@ function GoalDetailModal({ goal, onClose }) {
                             <p className="text-slate-400 mb-4">No tasks linked to this goal yet.</p>
                             <button
                                 onClick={async () => {
+                                    // LOCK: Premium Gating
+                                    const user = useStore.getState().user;
+                                    if (user.tier === 'free') {
+                                        useStore.getState().updateProfile({ lastGatedAction: 'goal_gen' }); // Optional tracking
+                                        const { useUIStore } = await import('../../store/useUIStore');
+                                        useUIStore.getState().addNotification('Goal AI is a Premium feature.', 'info');
+                                        // We need navigate, but this is a component. Let's use window.location or a prop.
+                                        // Actually, I'll use a portal or just window.location.href for simplicity in this modal.
+                                        window.location.href = '/pricing';
+                                        return;
+                                    }
+
                                     // Trigger auto-gen on existing goal!
                                     const generatedTasks = await import('../../services/GoalAgent').then(m => m.GoalAgent.generatePlan(goal.title, goal.type));
                                     generatedTasks.forEach(t => useStore.getState().addTask({ ...t, goalId: goal.id }));

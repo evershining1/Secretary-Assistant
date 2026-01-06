@@ -132,9 +132,19 @@ function AddGoalModal({ onClose }) {
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={handleGeneratePlan}
+                                    onClick={async () => {
+                                        // LOCK: Premium Gating
+                                        const user = useStore.getState().user;
+                                        if (user.tier === 'free') {
+                                            const { useUIStore } = await import('../../store/useUIStore');
+                                            useUIStore.getState().addNotification('Auto-Plan is a Premium feature.', 'info');
+                                            window.location.href = '/pricing';
+                                            return;
+                                        }
+                                        handleGeneratePlan();
+                                    }}
                                     disabled={!title.trim() || isGenerating}
-                                    className="flex-1 py-3.5 bg-indigo-50 text-indigo-600 rounded-xl font-medium hover:bg-indigo-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                    className="flex-1 py-3.5 bg-indigo-50 text-indigo-600 rounded-xl font-medium hover:bg-indigo-100 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 relative overflow-hidden"
                                 >
                                     {isGenerating ? (
                                         <>
@@ -142,7 +152,8 @@ function AddGoalModal({ onClose }) {
                                         </>
                                     ) : (
                                         <>
-                                            <Sparkles size={18} /> Auto-Plan
+                                            <Sparkles size={18} />
+                                            {useStore.getState().user.tier === 'free' ? 'Auto-Plan (Premium)' : 'Auto-Plan'}
                                         </>
                                     )}
                                 </button>

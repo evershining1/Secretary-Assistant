@@ -1,0 +1,9 @@
+{
+    "appId": "com.secretary.app",
+    "appName": "Secretary",
+    "webDir": "dist",
+    "bundledWebRuntime": false,
+    "server": {
+        "androidScheme": "https"
+    }
+}

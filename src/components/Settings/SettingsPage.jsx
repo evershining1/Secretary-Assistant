@@ -1,16 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useStore from '../../store/useStore';
 import { useUIStore } from '../../store/useUIStore';
-import { Mail, Calendar as CalendarIcon, Save, User as UserIcon, CheckCircle } from 'lucide-react';
+import {
+    Calendar as CalendarIcon,
+    Shield,
+    User as UserIcon,
+    Bell, Palette, Globe,
+    MessageCircle, Heart, Star, HelpCircle, ExternalLink,
+    Mail, Save, CheckCircle
+} from 'lucide-react';
 import clsx from 'clsx';
 import ConfirmModal from '../UI/ConfirmModal';
+import EmilyChat from '../Support/EmilyChat';
 
 function SettingsPage() {
+    const navigate = useNavigate();
     const user = useStore(state => state.user);
     const updateProfile = useStore(state => state.updateProfile);
     const [name, setName] = useState(user.name);
     const [saved, setSaved] = useState(false);
     const [integrationToDisconnect, setIntegrationToDisconnect] = useState(null);
+    const [showSupport, setShowSupport] = useState(false);
 
     // Sync local state if user changes externally (optional, but good practice)
     React.useEffect(() => {
@@ -38,6 +49,13 @@ function SettingsPage() {
     };
 
     const toggleIntegration = async (key) => {
+        // LOCK: Premium Gating
+        if (user.tier === 'free' && (key === 'outlook' || key === 'apple')) {
+            useUIStore.getState().addNotification(`Connecting ${key} requires a Premium subscription.`, 'info');
+            navigate('/pricing');
+            return;
+        }
+
         if (integrations[key]) {
             setIntegrationToDisconnect(key);
         } else {
@@ -224,6 +242,57 @@ function SettingsPage() {
                 </section>
             </div>
 
+            {/* Help & Support */}
+            <div className="mt-8 bg-white dark:bg-slate-900/50 backdrop-blur-xl p-8 rounded-[32px] border border-slate-200/60 dark:border-white/5 shadow-sm mb-8">
+                <div className="flex items-center gap-4 mb-8">
+                    <div className="bg-indigo-50 dark:bg-indigo-500/10 p-3 rounded-2xl text-indigo-600 dark:text-indigo-400">
+                        <HelpCircle size={24} />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Help & Support</h2>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Get assistance or share your feedback.</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button
+                        onClick={() => setShowSupport(true)}
+                        className="flex items-center justify-between p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 hover:border-skin-accent transition-all group text-left"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-white dark:bg-slate-800 rounded-xl text-skin-accent shadow-sm group-hover:scale-110 transition-transform">
+                                <MessageCircle size={20} />
+                            </div>
+                            <div>
+                                <div className="font-bold text-slate-900 dark:text-white">Chat with Emily</div>
+                                <div className="text-xs text-slate-500">Instant AI Assistant</div>
+                            </div>
+                        </div>
+                        <ExternalLink size={16} className="text-slate-300 group-hover:text-skin-accent" />
+                    </button>
+
+                    <button
+                        onClick={() => {
+                            // Logic to force show feedback if not already showing
+                            localStorage.removeItem('secretary_feedback_prompted');
+                            window.location.reload(); // Quick hack to trigger the effect in App
+                        }}
+                        className="flex items-center justify-between p-6 bg-slate-50 dark:bg-white/5 rounded-3xl border border-slate-100 dark:border-white/5 hover:border-red-400 transition-all group text-left"
+                    >
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 bg-white dark:bg-slate-800 rounded-xl text-red-500 shadow-sm group-hover:scale-110 transition-transform">
+                                <Heart size={20} />
+                            </div>
+                            <div>
+                                <div className="font-bold text-slate-900 dark:text-white">Share Feedback</div>
+                                <div className="text-xs text-slate-500">Rate your experience</div>
+                            </div>
+                        </div>
+                        <Star size={16} className="text-slate-300 group-hover:text-amber-400" />
+                    </button>
+                </div>
+            </div>
+
             <ConfirmModal
                 isOpen={!!integrationToDisconnect}
                 onClose={() => setIntegrationToDisconnect(null)}
@@ -233,6 +302,14 @@ function SettingsPage() {
                 confirmText="Disconnect"
                 type="danger"
             />
+
+            {showSupport && (
+                <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4">
+                    <div className="relative w-full max-w-lg">
+                        <EmilyChat forcedOpen={true} onClose={() => setShowSupport(false)} />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

@@ -39,6 +39,10 @@ function TaskModal({ onClose, taskToEdit = null, initialData = {} }) {
     useEffect(() => {
         if (!title || taskToEdit) return;
 
+        // LOCK: Premium Gating for Smart Parsing
+        const user = useStore.getState().user;
+        if (user.tier === 'free') return;
+
         const parsed = IngestionService.parseNaturalLanguage(title);
 
         if (parsed.date) setDate(parsed.date);
@@ -134,23 +138,32 @@ function TaskModal({ onClose, taskToEdit = null, initialData = {} }) {
                         />
                         {!taskToEdit && title && (
                             <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1 duration-300">
-                                {IngestionService.parseNaturalLanguage(title).hasTime && (
-                                    <span className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold uppercase rounded-md flex items-center gap-1 border border-indigo-100">
-                                        <Clock size={10} /> Smart Time Detected
-                                    </span>
-                                )}
-                                {IngestionService.parseNaturalLanguage(title).date && (
-                                    <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase rounded-md flex items-center gap-1 border border-emerald-100">
-                                        <Calendar size={10} /> Smart Date Detected
-                                    </span>
-                                )}
-                                {IngestionService.parseNaturalLanguage(title).location && (
-                                    <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold uppercase rounded-md flex items-center gap-1 border border-amber-100">
-                                        <MapPin size={10} /> Smart Location Detected
-                                    </span>
+                                {useStore.getState().user.tier === 'free' ? (
+                                    <div className="px-2 py-1 bg-slate-50 text-slate-400 text-[10px] font-bold uppercase rounded-md flex items-center gap-1 border border-slate-100">
+                                        ✨ Premium Smart Parsing Available
+                                    </div>
+                                ) : (
+                                    <>
+                                        {IngestionService.parseNaturalLanguage(title).hasTime && (
+                                            <span className="px-2 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-bold uppercase rounded-md flex items-center gap-1 border border-indigo-100">
+                                                <Clock size={10} /> Smart Time Detected
+                                            </span>
+                                        )}
+                                        {IngestionService.parseNaturalLanguage(title).date && (
+                                            <span className="px-2 py-1 bg-emerald-50 text-emerald-600 text-[10px] font-bold uppercase rounded-md flex items-center gap-1 border border-emerald-100">
+                                                <Calendar size={10} /> Smart Date Detected
+                                            </span>
+                                        )}
+                                        {IngestionService.parseNaturalLanguage(title).location && (
+                                            <span className="px-2 py-1 bg-amber-50 text-amber-600 text-[10px] font-bold uppercase rounded-md flex items-center gap-1 border border-amber-100">
+                                                <MapPin size={10} /> Smart Location Detected
+                                            </span>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}
+
                     </div>
 
                     {/* Properties Grid */}

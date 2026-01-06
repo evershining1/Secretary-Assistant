@@ -1,9 +1,19 @@
 import React, { useState } from 'react';
-import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Target, Settings, Plus, Sun, Moon } from 'lucide-react';
+import { NavLink, useLocation } from 'react-router-dom';
+import {
+    LayoutDashboard,
+    Calendar,
+    Target,
+    Settings,
+    Plus,
+    Sun,
+    Moon,
+    ShieldCheck
+} from 'lucide-react';
 import clsx from 'clsx';
 import TaskModal from '../Tasks/TaskModal';
 import useStore from '../../store/useStore';
+import AdBanner from '../UI/AdBanner';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Today', path: '/' },
@@ -15,11 +25,12 @@ function Sidebar() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const theme = useStore((state) => state.user.theme);
     const setTheme = useStore((state) => state.setTheme);
+    const user = useStore((state) => state.user);
+    const location = useLocation();
 
     const toggleTheme = () => {
         const next = theme === 'light' ? 'dark' : 'light';
         setTheme(next);
-        // Show notification
         import('../../store/useUIStore').then(m => m.useUIStore.getState().addNotification(`Switched to ${next} mode`, 'success'));
     };
 
@@ -59,15 +70,22 @@ function Sidebar() {
                     <span className="font-medium">New Task</span>
                 </button>
 
-                <NavLink to="/settings" className={({ isActive }) =>
-                    clsx("mt-6 pt-6 border-t border-slate-200/60 dark:border-white/10 flex items-center gap-3 px-2 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-xl p-2 transition-colors",
-                        isActive ? "text-skin-accent" : "text-skin-muted")
-                }>
+                <NavLink to="/settings" className={clsx("mt-6 pt-6 border-t border-slate-200/60 dark:border-white/10 flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all group", location.pathname === '/settings' ? "bg-skin-accent text-white shadow-lg shadow-skin-accent/20" : "text-skin-muted hover:bg-skin-secondary hover:text-skin-text")}>
                     <Settings size={20} />
-                    <span className="text-sm font-medium">Settings</span>
+                    <span>Settings</span>
                 </NavLink>
 
-                {/* Theme Toggle Button */}
+                {user?.is_admin && (
+                    <NavLink to="/admin" className={clsx("flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all group border border-dashed border-skin-accent/20 mt-2", location.pathname === '/admin' ? "bg-slate-900 text-white shadow-lg" : "text-skin-muted hover:bg-slate-50 dark:hover:bg-white/5")}>
+                        <ShieldCheck size={20} className="text-skin-accent" />
+                        <span>Admin Panel</span>
+                    </NavLink>
+                )}
+
+                <div className="mt-auto pt-6">
+                    <AdBanner placement="sidebar" />
+                </div>
+
                 <button
                     onClick={toggleTheme}
                     className="mt-2 flex items-center gap-3 px-4 py-2 text-xs font-medium text-skin-muted hover:text-skin-text transition-colors w-full"

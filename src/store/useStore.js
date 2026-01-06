@@ -20,7 +20,9 @@ const useStore = create((set, get) => ({
             google: false,
             outlook: false,
             apple: false
-        }
+        },
+        tier: 'free',
+        is_admin: false
     },
 
     calendarEvents: [], // Unified model storage

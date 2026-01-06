@@ -12,13 +12,20 @@ import ProtectedRoute from './components/Auth/ProtectedRoute';
 import AuthProvider from './components/Auth/AuthProvider';
 import { ThemeManager } from './components/Layout/ThemeManager';
 import NotificationCenter from './components/UI/NotificationCenter';
+import AdminPage from './components/Admin/AdminPage';
+import PricingPage from './components/Commerce/PricingPage';
+import CheckoutPage from './components/Commerce/CheckoutPage';
+import FeedbackSystem from './components/UI/FeedbackSystem';
+import { SubdomainHandler } from './components/Layout/SubdomainHandler';
 
 function App() {
   return (
     <Router>
+      <SubdomainHandler />
       <AuthProvider>
         <ThemeManager />
         <NotificationCenter />
+        <FeedbackSystem />
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/auth/:provider/callback" element={<OAuthCallback />} />
@@ -32,6 +39,9 @@ function App() {
                     <Route path="/calendar" element={<CalendarView />} />
                     <Route path="/goals" element={<GoalsDashboard />} />
                     <Route path="/settings" element={<SettingsPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                    <Route path="/pricing" element={<PricingPage />} />
+                    <Route path="/checkout" element={<CheckoutPage />} />
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
                 </main>

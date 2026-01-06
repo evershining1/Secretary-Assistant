@@ -86,10 +86,16 @@ export const CalendarSyncEngine = {
      * Sync all enabled providers
      */
     async syncAll() {
-        const { integrations } = useStore.getState().user;
+        const { integrations, tier } = useStore.getState().user;
         const providers = Object.keys(integrations).filter(k => integrations[k]);
 
         for (const provider of providers) {
+            // LOCK: Premium Gating in Engine
+            if (tier === 'free' && (provider === 'outlook' || provider === 'apple')) {
+                console.warn(`[SyncEngine] Skipping ${provider} sync for free tier user.`);
+                continue;
+            }
+
             try {
                 if (provider === 'google') {
                     const GoogleCalendarClient = (await import('./calendar/GoogleCalendarClient')).default;
