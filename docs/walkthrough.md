@@ -9,6 +9,7 @@ The new engine (`CalendarSyncEngine.js`) provides a professional foundation for 
 - **Bi-directional Diffing**: Automatically detects changes between local state and external providers (Google, etc.).
 - **Smart Conflict Resolution**: Uses `last_modified` timestamps to ensure data integrity.
 - **Automatic Task Conversion**: Every calendar event is automatically projected as a **Task** in the main dashboard, maintaining a persistent link.
+- **Safari Optimized**: The OAuth flow has been updated to use direct redirects instead of popups, ensuring it works perfectly on iPhone and Mac without being blocked by Safari's security settings.
 
 ### 2. User Onboarding Flow
 A seamless first-time experience ensures every user feels at home from the start.

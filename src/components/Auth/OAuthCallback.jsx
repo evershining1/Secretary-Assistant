@@ -30,6 +30,10 @@ function OAuthCallback() {
                     case 'google':
                         await GoogleOAuth.handleCallback(code, state);
                         break;
+                    case 'outlook':
+                        const OutlookOAuth = (await import('../../services/auth/OutlookOAuth')).default;
+                        await OutlookOAuth.handleCallback(code, state);
+                        break;
                     // Add other providers later
                     default:
                         throw new Error(`Unknown provider: ${provider}`);

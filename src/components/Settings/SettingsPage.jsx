@@ -46,6 +46,16 @@ function SettingsPage() {
                 if (key === 'google') {
                     const GoogleOAuth = (await import('../../services/auth/GoogleOAuth')).default;
                     await GoogleOAuth.authenticate();
+                } else if (key === 'outlook') {
+                    const OutlookOAuth = (await import('../../services/auth/OutlookOAuth')).default;
+                    await OutlookOAuth.authenticate();
+                } else if (key === 'apple') {
+                    const url = prompt('Please enter your Public iCloud Calendar link (webcal://...):');
+                    if (url) {
+                        updateProfile({ metadata: { ...user.metadata, appleCalendarUrl: url } });
+                        toggleIntegrationStore('apple');
+                        useUIStore.getState().addNotification(`Apple Calendar connected!`, 'success');
+                    }
                 } else {
                     useUIStore.getState().addNotification(`${key} Calendar integration coming soon!`, 'info');
                 }

@@ -94,8 +94,28 @@ export const CalendarSyncEngine = {
                 if (provider === 'google') {
                     const GoogleCalendarClient = (await import('./calendar/GoogleCalendarClient')).default;
                     await this.syncProvider('google', () => GoogleCalendarClient.listEvents());
+                } else if (provider === 'outlook') {
+                    const OutlookCalendarClient = (await import('./calendar/OutlookCalendarClient')).default;
+                    const { supabase } = await import('../lib/supabase');
+
+                    // Fetch Outlook token from oauth_tokens
+                    const { data: tokenData } = await supabase
+                        .from('oauth_tokens')
+                        .select('access_token')
+                        .eq('provider', 'outlook')
+                        .single();
+
+                    if (tokenData?.access_token) {
+                        await this.syncProvider('outlook', () => OutlookCalendarClient.listEvents(tokenData.access_token));
+                    }
+                } else if (provider === 'apple') {
+                    const AppleCalendarClient = (await import('./calendar/AppleCalendarClient')).default;
+                    const { appleCalendarUrl } = useStore.getState().user.metadata || {};
+
+                    if (appleCalendarUrl) {
+                        await this.syncProvider('apple', () => AppleCalendarClient.listEvents(appleCalendarUrl));
+                    }
                 }
-                // Add other providers here (Outlook, etc.)
             } catch (err) {
                 console.error(`[SyncEngine] Auto-sync failed for ${provider}:`, err);
             }
