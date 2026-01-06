@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import useStore from '../../store/useStore';
+import { useUIStore } from '../../store/useUIStore';
 import { Mail, Calendar as CalendarIcon, Save, User as UserIcon, CheckCircle } from 'lucide-react';
 import clsx from 'clsx';
 import ConfirmModal from '../UI/ConfirmModal';
@@ -46,11 +47,11 @@ function SettingsPage() {
                     const GoogleOAuth = (await import('../../services/auth/GoogleOAuth')).default;
                     await GoogleOAuth.authenticate();
                 } else {
-                    addNotification(`${key} Calendar integration coming soon!`, 'info');
+                    useUIStore.getState().addNotification(`${key} Calendar integration coming soon!`, 'info');
                 }
             } catch (error) {
                 console.error(`Failed to connect ${key}:`, error);
-                addNotification(`Failed to connect ${key} Calendar`, 'error');
+                useUIStore.getState().addNotification(`Failed to connect ${key} Calendar`, 'error');
             }
         }
     };
@@ -65,10 +66,10 @@ function SettingsPage() {
                 await GoogleOAuth.disconnect();
             }
             toggleIntegrationStore(key);
-            addNotification(`${key} Calendar disconnected`, 'success');
+            useUIStore.getState().addNotification(`${key} Calendar disconnected`, 'success');
         } catch (error) {
             console.error(`Failed to disconnect ${key}:`, error);
-            addNotification(`Failed to disconnect ${key} Calendar`, 'error');
+            useUIStore.getState().addNotification(`Failed to disconnect ${key} Calendar`, 'error');
         }
         setIntegrationToDisconnect(null);
     };

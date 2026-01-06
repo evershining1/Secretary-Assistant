@@ -35,17 +35,8 @@ class GoogleOAuthService {
         authUrl.searchParams.set('access_type', 'offline');
         authUrl.searchParams.set('prompt', 'consent');
 
-        // Open in popup
-        const width = 500;
-        const height = 600;
-        const left = window.screenX + (window.outerWidth - width) / 2;
-        const top = window.screenY + (window.outerHeight - height) / 2;
-
-        window.open(
-            authUrl.toString(),
-            'Google Calendar Auth',
-            `width=${width},height=${height},left=${left},top=${top}`
-        );
+        // Redirect to Google OAuth (Safari-friendly approach)
+        window.location.href = authUrl.toString();
     }
 
     /**
