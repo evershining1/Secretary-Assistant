@@ -29,4 +29,13 @@ To enable Outlook integration, you need to register "Secretary" in the Microsoft
 3.  Enable the provider and enter your Client ID and Client Secret.
 
 ---
+
+## ⚡ Alternative: Subscription Link (Easier)
+If you are seeing "Access blocked" or don't want to create a Microsoft App, you can use a **Publish Calendar link**:
+1. Go to **Outlook Web -> Settings -> Calendar -> Shared Calendars**.
+2. Under **Publish a calendar**, select your calendar and "Can view all details".
+3. Click **Publish** and copy the **ICS link**.
+4. In Secretary Settings, click **Outlook** and choose the **Link** option.
+
+---
 *Follow these steps to unlock professional Outlook syncing!*

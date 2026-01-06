@@ -47,8 +47,18 @@ function SettingsPage() {
                     const GoogleOAuth = (await import('../../services/auth/GoogleOAuth')).default;
                     await GoogleOAuth.authenticate();
                 } else if (key === 'outlook') {
-                    const OutlookOAuth = (await import('../../services/auth/OutlookOAuth')).default;
-                    await OutlookOAuth.authenticate();
+                    const choice = confirm('How would you like to connect Outlook?\n\nOK = OAuth (Recommended)\nCancel = ICS Subscription Link (Easier)');
+                    if (choice) {
+                        const OutlookOAuth = (await import('../../services/auth/OutlookOAuth')).default;
+                        await OutlookOAuth.authenticate();
+                    } else {
+                        const url = prompt('Please enter your Outlook "Publish Calendar" link (https://outlook.office365.com/...):');
+                        if (url) {
+                            updateProfile({ metadata: { ...user.metadata, outlookCalendarUrl: url } });
+                            toggleIntegrationStore('outlook');
+                            useUIStore.getState().addNotification(`Outlook Calendar connected via link!`, 'success');
+                        }
+                    }
                 } else if (key === 'apple') {
                     const url = prompt('Please enter your Public iCloud Calendar link (webcal://...):');
                     if (url) {

@@ -1,10 +1,10 @@
 import { CalendarEvent } from '../models/CalendarEvent';
 
 /**
- * Apple Calendar Client (iCloud)
- * Supports syncing via Public iCal (.ics) subscription links
+ * ICS/iCal Calendar Client
+ * Supports syncing via Public iCal (.ics) subscription links (Apple, Outlook, etc.)
  */
-export class AppleCalendarClient {
+export class ICSCalendarClient {
     /**
      * Fetch and parse events from an iCal URL
      */
