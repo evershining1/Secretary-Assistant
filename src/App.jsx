@@ -16,14 +16,14 @@ import AdminPage from './components/Admin/AdminPage';
 import PricingPage from './components/Commerce/PricingPage';
 import CheckoutPage from './components/Commerce/CheckoutPage';
 import FeedbackSystem from './components/UI/FeedbackSystem';
-// import { SubdomainHandler } from './components/Layout/SubdomainHandler';
+import { SubdomainHandler } from './components/Layout/SubdomainHandler';
 import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   return (
     <ErrorBoundary>
       <Router>
-        {/* <SubdomainHandler /> */}
+        <SubdomainHandler />
         <AuthProvider>
           <ThemeManager />
           <NotificationCenter />
