@@ -1,5 +1,5 @@
 import GoogleOAuth from '../auth/GoogleOAuth';
-import { normalizeExternalEvent } from '../../models/CalendarEvent';
+import { CalendarEvent } from '../../models/CalendarEvent';
 
 /**
  * Google Calendar API Client
@@ -70,7 +70,7 @@ class GoogleCalendarClient {
             body: JSON.stringify(googleEvent)
         });
 
-        return normalizeExternalEvent(data, 'google');
+        return CalendarEvent.fromGoogle(data);
     }
 
     /**
@@ -87,7 +87,7 @@ class GoogleCalendarClient {
             body: JSON.stringify(googleUpdates)
         });
 
-        return normalizeExternalEvent(data, 'google');
+        return CalendarEvent.fromGoogle(data);
     }
 
     /**
