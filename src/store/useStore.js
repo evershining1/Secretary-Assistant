@@ -24,6 +24,11 @@ const useStore = create((set, get) => ({
         tier: 'free',
         is_admin: false
     },
+    adConfig: {
+        sidebar_enabled: true,
+        inline_enabled: false,
+        default_affiliate_link: 'https://amazon.com/?tag=mysec-20'
+    },
 
     calendarEvents: [], // Unified model storage
 
@@ -133,6 +138,23 @@ const useStore = create((set, get) => ({
 
         try {
             const DataSyncService = (await import('../services/DataSyncService')).default || (await import('../services/DataSyncService')).DataSyncService;
+            const { supabase } = await import('../lib/supabase');
+
+            // Load System Settings (like ad configuration)
+            try {
+                const { data: systemSettings } = await supabase
+                    .from('system_settings')
+                    .select('*');
+
+                if (systemSettings) {
+                    const adConf = systemSettings.find(s => s.key === 'ad_configuration');
+                    if (adConf && adConf.value) {
+                        set({ adConfig: adConf.value });
+                    }
+                }
+            } catch (err) {
+                console.error('[Store] Failed to load settings:', err);
+            }
 
             // Load tasks
             const tasks = await DataSyncService.syncTasks(userId);

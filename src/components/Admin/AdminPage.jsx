@@ -19,6 +19,13 @@ function AdminPage() {
     const [settings, setSettings] = useState([]);
     const [policies, setPolicies] = useState([]);
 
+    const [adConfig, setAdConfig] = useState({
+        sidebar_enabled: true,
+        inline_enabled: false,
+        default_affiliate_link: 'https://amazon.com/?tag=mysec-20'
+    });
+    const [isSavingAdConfig, setIsSavingAdConfig] = useState(false);
+
     useEffect(() => {
         loadData();
     }, []);
@@ -35,7 +42,6 @@ function AdminPage() {
             ]);
 
             // Mocking feedback fetch for now since AdminService doesn't have it yet
-            // In real app: const feedbackData = await AdminService.getFeedback();
             const { data: feedbackData } = await (await import('../../lib/supabase')).supabase
                 .from('user_feedback')
                 .select('*, user_profiles(name, email)')
@@ -47,6 +53,11 @@ function AdminPage() {
             setSettings(systemSettings);
             setPolicies(securityPolicies);
             setFeedback(feedbackData || []);
+
+            const adConf = systemSettings.find(s => s.key === 'ad_configuration');
+            if (adConf && adConf.value) {
+                setAdConfig(adConf.value);
+            }
         } catch (error) {
             console.error('[Admin] Load failed:', error);
             useUIStore.getState().addNotification('Failed to load admin data', 'error');
@@ -62,6 +73,18 @@ function AdminPage() {
             useUIStore.getState().addNotification('User tier updated successfully', 'success');
         } catch (error) {
             useUIStore.getState().addNotification('Failed to update tier', 'error');
+        }
+    };
+
+    const handleSaveAdConfig = async () => {
+        setIsSavingAdConfig(true);
+        try {
+            await AdminService.updateSystemSetting('ad_configuration', adConfig);
+            useUIStore.getState().addNotification('Ad configuration saved successfully', 'success');
+        } catch (error) {
+            useUIStore.getState().addNotification('Failed to save ad configuration', 'error');
+        } finally {
+            setIsSavingAdConfig(false);
         }
     };
 
@@ -363,14 +386,24 @@ function AdminPage() {
                                         <div className="font-bold text-slate-900 dark:text-white">Enable Sidebar Banner</div>
                                         <div className="text-xs text-slate-500">Show native affiliate banner in the left navigation</div>
                                     </div>
-                                    <input type="checkbox" defaultChecked className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300" />
+                                    <input
+                                        type="checkbox"
+                                        checked={adConfig.sidebar_enabled}
+                                        onChange={(e) => setAdConfig({ ...adConfig, sidebar_enabled: e.target.checked })}
+                                        className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300"
+                                    />
                                 </label>
                                 <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer">
                                     <div>
                                         <div className="font-bold text-slate-900 dark:text-white">Enable In-Line App Ads</div>
                                         <div className="text-xs text-slate-500">Show Google AdSense inside dashboard feeds</div>
                                     </div>
-                                    <input type="checkbox" className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300" />
+                                    <input
+                                        type="checkbox"
+                                        checked={adConfig.inline_enabled}
+                                        onChange={(e) => setAdConfig({ ...adConfig, inline_enabled: e.target.checked })}
+                                        className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300"
+                                    />
                                 </label>
                             </div>
                             <div className="space-y-4">
@@ -380,11 +413,17 @@ function AdminPage() {
                                         type="url"
                                         className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-skin-accent outline-none text-slate-900 dark:text-white transition-all"
                                         placeholder="https://affiliate-network.com/referral/123"
-                                        defaultValue="https://amazon.com/?tag=mysec-20"
+                                        value={adConfig.default_affiliate_link}
+                                        onChange={(e) => setAdConfig({ ...adConfig, default_affiliate_link: e.target.value })}
                                     />
                                 </div>
-                                <button className="w-full bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl hover:opacity-90 transition-opacity">
-                                    Save Ad Configuration
+                                <button
+                                    onClick={handleSaveAdConfig}
+                                    disabled={isSavingAdConfig}
+                                    className="w-full bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl hover:opacity-90 transition-opacity flex justify-center items-center gap-2"
+                                >
+                                    {isSavingAdConfig && <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />}
+                                    <span>{isSavingAdConfig ? 'Saving...' : 'Save Ad Configuration'}</span>
                                 </button>
                             </div>
                         </div>
