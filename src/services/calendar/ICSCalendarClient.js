@@ -1,4 +1,4 @@
-import { CalendarEvent } from '../models/CalendarEvent';
+import { CalendarEvent } from '../../models/CalendarEvent';
 
 /**
  * ICS/iCal Calendar Client
@@ -97,4 +97,4 @@ export class ICSCalendarClient {
     }
 }
 
-export default AppleCalendarClient;
+export default ICSCalendarClient;

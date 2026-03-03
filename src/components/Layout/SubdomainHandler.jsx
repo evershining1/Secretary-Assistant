@@ -15,10 +15,9 @@ export function SubdomainHandler() {
         // Prevent infinite loops if we are already on the right path
         if (hostname.startsWith('admin.') && !location.pathname.startsWith('/admin')) {
             navigate('/admin');
-        } else if (hostname.startsWith('app.') && location.pathname === '/') {
-            // Optional: Ensure app. goes to dashboard? It already does.
         }
-    }, [hostname, location, navigate]);
+        // app. subdomain already goes to dashboard by default
+    }, [location.pathname, navigate]);
 
     return null;
 }
