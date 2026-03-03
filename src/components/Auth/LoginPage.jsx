@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthService from '../../services/AuthService';
+import logoImg from '../../assets/logo.png';
 import { ArrowRight, Lock, Mail, Github, ShieldCheck, Globe } from 'lucide-react';
 
 function LoginPage() {
@@ -64,7 +65,7 @@ function LoginPage() {
                 <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-skin-accent/10 to-transparent border-r border-slate-200/50 dark:border-white/5">
                     <div>
                         <div className="flex items-center gap-3 mb-10">
-                            <img src="/src/assets/logo.png" alt="Secretary Logo" className="w-12 h-12 rounded-2xl shadow-xl shadow-skin-accent/20 object-cover" />
+                            <img src={logoImg} alt="Secretary Logo" className="w-12 h-12 rounded-2xl shadow-xl shadow-skin-accent/20 object-cover" />
                             <span className="text-xl font-bold text-slate-900 dark:text-white">Secretary</span>
                         </div>
                         <h2 className="text-4xl font-black text-slate-900 dark:text-white leading-[1.1] mb-6">
@@ -95,7 +96,7 @@ function LoginPage() {
                 {/* Form Side */}
                 <div className="p-8 md:p-12 lg:p-16 flex flex-col justify-center">
                     <div className="md:hidden flex items-center gap-3 mb-12 justify-center">
-                        <img src="/src/assets/logo.png" alt="Secretary Logo" className="w-12 h-12 rounded-2xl shadow-xl shadow-skin-accent/20" />
+                        <img src={logoImg} alt="Secretary Logo" className="w-12 h-12 rounded-2xl shadow-xl shadow-skin-accent/20" />
                         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Secretary</h1>
                     </div>
 

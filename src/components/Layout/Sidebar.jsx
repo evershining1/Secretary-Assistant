@@ -14,6 +14,7 @@ import clsx from 'clsx';
 import TaskModal from '../Tasks/TaskModal';
 import useStore from '../../store/useStore';
 import AdBanner from '../UI/AdBanner';
+import logoImg from '../../assets/logo.png';
 
 const navItems = [
     { icon: LayoutDashboard, label: 'Today', path: '/' },
@@ -38,7 +39,7 @@ function Sidebar() {
         <>
             <aside className="h-screen w-64 bg-skin-secondary/50 backdrop-blur-xl border-r border-slate-200/60 dark:border-white/10 fixed left-0 top-0 flex flex-col p-6 z-50 transition-colors duration-300">
                 <div className="flex items-center gap-3 px-2 mb-10">
-                    <img src="/src/assets/logo.png" alt="Secretary Logo" className="w-10 h-10 rounded-xl shadow-lg shadow-skin-accent/30 object-contain" />
+                    <img src={logoImg} alt="Secretary Logo" className="w-10 h-10 rounded-xl shadow-lg shadow-skin-accent/30 object-contain" />
                     <span className="font-semibold text-skin-text text-xl tracking-tight">Secretary</span>
                 </div>
 
