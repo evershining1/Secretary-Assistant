@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import AuthService from '../../services/AuthService';
 import logoImg from '../../assets/logo.png';
 import { ArrowRight, Lock, Mail, Github, ShieldCheck, Globe } from 'lucide-react';
 
 function LoginPage() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -22,7 +23,10 @@ function LoginPage() {
             } else {
                 await AuthService.signInWithEmail(email, password);
             }
-            navigate('/');
+
+            // Redirect to the URL they were trying to access, or default to '/'
+            const from = location.state?.from?.pathname || '/';
+            navigate(from, { replace: true });
         } catch (err) {
             console.error('Login failed:', err);
             setError(err.message || 'Failed to sign in');
@@ -37,6 +41,9 @@ function LoginPage() {
 
         try {
             await AuthService.signInWithOAuth(provider);
+            // OAuth redirects automatically, but if it happens inline later:
+            // const from = location.state?.from?.pathname || '/';
+            // navigate(from, { replace: true });
         } catch (err) {
             console.error('OAuth failed:', err);
             let msg = err.message || `Failed to sign in with ${provider}`;
