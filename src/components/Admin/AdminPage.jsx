@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Activity, CreditCard, ShieldCheck, ChevronRight, UserPlus, RefreshCw } from 'lucide-react';
+import { Users, Activity, CreditCard, ShieldCheck, ChevronRight, UserPlus, RefreshCw, Star, Settings2, Megaphone, DollarSign, Plus } from 'lucide-react';
 import useStore from '../../store/useStore';
 import AdminService from '../../services/AdminService';
 import { useUIStore } from '../../store/useUIStore';
@@ -91,8 +91,8 @@ function AdminPage() {
             </header>
 
             {/* Tab Navigation */}
-            <div className="flex gap-4 mb-8 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl w-fit">
-                {['users', 'settings', 'security', 'feedback'].map((tab) => (
+            <div className="flex gap-4 mb-8 p-1 bg-slate-100 dark:bg-white/5 rounded-2xl w-fit flex-wrap">
+                {['users', 'settings', 'security', 'feedback', 'monetization'].map((tab) => (
                     <button
                         key={tab}
                         onClick={() => setActiveTab(tab)}
@@ -342,6 +342,90 @@ function AdminPage() {
                             <p className="text-slate-400">No feedback received yet.</p>
                         </div>
                     )}
+                </div>
+            )}
+
+            {activeTab === 'monetization' && (
+                <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
+                    {/* Ads & Affiliates Control */}
+                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center gap-3">
+                            <Megaphone className="text-emerald-500" size={24} />
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Ads & Affiliate Network</h2>
+                                <p className="text-sm text-slate-500 mt-1">Configure the ad banners served to free tier users.</p>
+                            </div>
+                        </div>
+                        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="space-y-4">
+                                <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer">
+                                    <div>
+                                        <div className="font-bold text-slate-900 dark:text-white">Enable Sidebar Banner</div>
+                                        <div className="text-xs text-slate-500">Show native affiliate banner in the left navigation</div>
+                                    </div>
+                                    <input type="checkbox" defaultChecked className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300" />
+                                </label>
+                                <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer">
+                                    <div>
+                                        <div className="font-bold text-slate-900 dark:text-white">Enable In-Line App Ads</div>
+                                        <div className="text-xs text-slate-500">Show Google AdSense inside dashboard feeds</div>
+                                    </div>
+                                    <input type="checkbox" className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300" />
+                                </label>
+                            </div>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Default Affiliate Link (Fallback)</label>
+                                    <input
+                                        type="url"
+                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-skin-accent outline-none text-slate-900 dark:text-white transition-all"
+                                        placeholder="https://affiliate-network.com/referral/123"
+                                        defaultValue="https://amazon.com/?tag=mysec-20"
+                                    />
+                                </div>
+                                <button className="w-full bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl hover:opacity-90 transition-opacity">
+                                    Save Ad Configuration
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Subscription Pricing */}
+                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm overflow-hidden">
+                        <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center gap-3">
+                            <DollarSign className="text-skin-accent" size={24} />
+                            <div>
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">Premium Subscriptions</h2>
+                                <p className="text-sm text-slate-500 mt-1">Manage pricing tiers and Stripe integration.</p>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            <div className="flex flex-col md:flex-row gap-6 mb-6">
+                                <div className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-6 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4">
+                                        <span className="bg-skin-accent/10 text-skin-accent text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">Live</span>
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">Monthly Premium</h3>
+                                    <div className="text-4xl font-black text-slate-900 dark:text-white mb-4">$5.00<span className="text-sm text-slate-400 font-normal">/mo</span></div>
+                                    <div className="space-y-2 mb-6">
+                                        <div className="text-xs text-slate-500 font-medium">Stripe Price ID: <code className="bg-slate-200 dark:bg-white/10 px-1 rounded">price_123456789</code></div>
+                                        <div className="text-xs text-slate-500 font-medium">Features: Ad-Free, AI Planning, Unlimited Sync</div>
+                                    </div>
+                                    <button className="w-full border border-slate-300 dark:border-white/20 text-slate-700 dark:text-white font-bold py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-sm">
+                                        Edit Price Plan
+                                    </button>
+                                </div>
+
+                                <div className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center opacity-70 group hover:opacity-100 transition-opacity cursor-pointer">
+                                    <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center mb-3 group-hover:bg-skin-accent group-hover:text-white transition-colors">
+                                        <Plus size={24} />
+                                    </div>
+                                    <h3 className="font-bold text-slate-900 dark:text-white">Add Yearly Plan</h3>
+                                    <p className="text-xs text-slate-500 max-w-[200px] mt-1">Offer a discount for annual billing to increase retention.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
