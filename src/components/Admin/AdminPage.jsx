@@ -408,7 +408,7 @@ function AdminPage() {
                                     <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">Monthly Premium</h3>
                                     <div className="text-4xl font-black text-slate-900 dark:text-white mb-4">$5.00<span className="text-sm text-slate-400 font-normal">/mo</span></div>
                                     <div className="space-y-2 mb-6">
-                                        <div className="text-xs text-slate-500 font-medium">Stripe Price ID: <code className="bg-slate-200 dark:bg-white/10 px-1 rounded">price_123456789</code></div>
+                                        <div className="text-xs text-slate-500 font-medium">Stripe Price ID: <code className="bg-slate-200 dark:bg-white/10 px-1 rounded">price_1T71fDHCuFYSkqce9H96ZrlR</code></div>
                                         <div className="text-xs text-slate-500 font-medium">Features: Ad-Free, AI Planning, Unlimited Sync</div>
                                     </div>
                                     <button className="w-full border border-slate-300 dark:border-white/20 text-slate-700 dark:text-white font-bold py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-sm">
