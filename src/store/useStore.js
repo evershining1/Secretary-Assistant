@@ -27,7 +27,11 @@ const useStore = create((set, get) => ({
     adConfig: {
         sidebar_enabled: true,
         inline_enabled: false,
-        default_affiliate_link: 'https://amazon.com/?tag=mysec-20'
+        affiliate_links: [
+            'https://amazon.com/?tag=mysec-20',
+            'https://shareasale.com/r.cfm?b=12345',
+            'https://partnernetwork.ebay.com/'
+        ]
     },
 
     calendarEvents: [], // Unified model storage

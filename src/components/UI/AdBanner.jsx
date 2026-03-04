@@ -30,7 +30,12 @@ function AdBanner({ placement = 'sidebar' }) {
         if (placement === 'sidebar' || placement === 'dashboard') {
             navigate('/pricing');
         } else if (placement === 'inline') {
-            window.open(adConfig?.default_affiliate_link || 'https://amazon.com/?tag=mysec-20', '_blank');
+            const links = adConfig?.affiliate_links || ['https://amazon.com/?tag=mysec-20'];
+            const validLinks = links.filter(l => l.trim() !== '');
+            const safeLinks = validLinks.length > 0 ? validLinks : ['https://amazon.com/?tag=mysec-20'];
+
+            const randomLink = safeLinks[Math.floor(Math.random() * safeLinks.length)];
+            window.open(randomLink, '_blank');
         }
     };
 

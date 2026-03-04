@@ -1,7 +1,7 @@
 INSERT INTO system_settings (key, value, description)
 VALUES (
     'ad_configuration',
-    '{"sidebar_enabled": true, "inline_enabled": false, "default_affiliate_link": "https://amazon.com/?tag=mysec-20"}',
+    '{"sidebar_enabled": true, "inline_enabled": false, "affiliate_links": ["https://amazon.com/?tag=mysec-20", "https://shareasale.com/r.cfm?b=12345"]}',
     'Controls ad and affiliate link visibility and default URLs across the application.'
 )
 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value;

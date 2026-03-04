@@ -22,7 +22,11 @@ function AdminPage() {
     const [adConfig, setAdConfig] = useState({
         sidebar_enabled: true,
         inline_enabled: false,
-        default_affiliate_link: 'https://amazon.com/?tag=mysec-20'
+        affiliate_links: [
+            'https://amazon.com/?tag=mysec-20',
+            'https://shareasale.com/r.cfm?b=12345',
+            'https://partnernetwork.ebay.com/'
+        ]
     });
     const [isSavingAdConfig, setIsSavingAdConfig] = useState(false);
 
@@ -408,14 +412,14 @@ function AdminPage() {
                             </div>
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Default Affiliate Link (Fallback)</label>
-                                    <input
-                                        type="url"
-                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-skin-accent outline-none text-slate-900 dark:text-white transition-all"
-                                        placeholder="https://affiliate-network.com/referral/123"
-                                        value={adConfig.default_affiliate_link}
-                                        onChange={(e) => setAdConfig({ ...adConfig, default_affiliate_link: e.target.value })}
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Affiliate Links (One per line)</label>
+                                    <textarea
+                                        className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-skin-accent outline-none text-slate-900 dark:text-white transition-all h-28 resize-none font-mono"
+                                        placeholder="https://amazon.com/?tag=mysec-20&#10;https://shareasale.com/..."
+                                        value={(adConfig.affiliate_links || []).join('\n')}
+                                        onChange={(e) => setAdConfig({ ...adConfig, affiliate_links: e.target.value.split('\n') })}
                                     />
+                                    <p className="text-[10px] text-slate-400 mt-2">The system will randomly rotate through these links in ad placements.</p>
                                 </div>
                                 <button
                                     onClick={handleSaveAdConfig}
