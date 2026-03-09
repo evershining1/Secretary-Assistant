@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import useStore from '../../store/useStore';
+import { AuthService } from '../../services/AuthService';
 
 /**
  * AuthProvider - Manages authentication state
@@ -9,6 +10,7 @@ import useStore from '../../store/useStore';
  */
 function AuthProvider({ children }) {
     const navigate = useNavigate();
+    const location = useLocation();
     const updateProfile = useStore(state => state.updateProfile);
 
     useEffect(() => {
@@ -19,29 +21,8 @@ function AuthProvider({ children }) {
 
                 if (session?.user) {
                     console.log('[Auth] User session found:', session.user.email);
-
-                    // Load user profile from database
-                    const { data: profile } = await supabase
-                        .from('user_profiles')
-                        .select('*')
-                        .eq('id', session.user.id)
-                        .single();
-
-                    if (profile) {
-                        updateProfile({
-                            email: profile.email,
-                            name: profile.name,
-                            avatar: profile.avatar_url,
-                            xp: profile.xp,
-                            level: profile.level,
-                            streak: profile.streak,
-                            theme: profile.theme,
-                            integrations: profile.integrations
-                        });
-
-                        // Load user's tasks and goals
-                        useStore.getState().loadUserData(session.user.id);
-                    }
+                    // Load user profile using centralized service
+                    await AuthService.loadUserProfile(session.user.id);
                 } else {
                     console.log('[Auth] No active session');
                 }
@@ -58,29 +39,11 @@ function AuthProvider({ children }) {
 
             if (event === 'SIGNED_IN' && session?.user) {
                 // User signed in - load profile
-                const { data: profile } = await supabase
-                    .from('user_profiles')
-                    .select('*')
-                    .eq('id', session.user.id)
-                    .single();
+                await AuthService.loadUserProfile(session.user.id);
 
-                if (profile) {
-                    updateProfile({
-                        email: profile.email,
-                        name: profile.name,
-                        avatar: profile.avatar_url,
-                        xp: profile.xp,
-                        level: profile.level,
-                        streak: profile.streak,
-                        theme: profile.theme,
-                        integrations: profile.integrations
-                    });
-
-                    // Load user's tasks and goals
-                    useStore.getState().loadUserData(session.user.id);
+                if (location.pathname === '/login' || location.pathname === '/auth/callback') {
+                    navigate('/');
                 }
-
-                navigate('/');
             } else if (event === 'SIGNED_OUT') {
                 // User signed out - clear profile
                 updateProfile({ email: null, name: 'Guest' });

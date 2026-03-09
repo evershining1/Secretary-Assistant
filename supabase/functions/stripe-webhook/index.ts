@@ -9,10 +9,10 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
     httpClient: Stripe.createFetchHttpClient(),
 })
 
-// Initialize Supabase Admin client with service key to bypass RLS
+// Initialize Supabase client
 const supabaseAdmin = createClient(
-    Deno.env.get('SUPABASE_URL') ?? '',
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    Deno.env.get('SUPABASE_DB_URL') ?? Deno.env.get('MY_SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('MY_SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
 
 serve(async (req) => {
