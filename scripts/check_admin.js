@@ -7,7 +7,7 @@ async function checkStatus() {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     console.log('--- Checking User Profile ---');
-    const email = 'evershining17@gmail.com';
+    const email = 'evershining17@proton.me';
 
     console.log('Fetching auth user...');
     try {

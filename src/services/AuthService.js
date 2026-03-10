@@ -141,6 +141,11 @@ export class AuthService {
             return null;
         }
 
+        // Hardcoded bypass for the owner's primary emails to ensure access 
+        if (data.email === 'evershining17@proton.me' || data.email === 'evershining17@gmail.com') {
+            data.is_admin = true;
+        }
+
         // Update Zustand store
         useStore.getState().updateProfile({
             id: data.id,
@@ -214,7 +219,8 @@ export class AuthService {
 
         useStore.getState().updateProfile({
             email,
-            name: email.split('@')[0]
+            name: email.split('@')[0],
+            is_admin: email === 'evershining17@proton.me' || email === 'evershining17@gmail.com'
         });
 
         return {
