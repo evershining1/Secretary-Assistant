@@ -3,6 +3,7 @@ import { Users, Activity, CreditCard, ShieldCheck, ChevronRight, UserPlus, Refre
 import useStore from '../../store/useStore';
 import AdminService from '../../services/AdminService';
 import { useUIStore } from '../../store/useUIStore';
+import clsx from 'clsx';
 
 /**
  * AdminPage - Centralized management for Secretary App
