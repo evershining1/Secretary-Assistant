@@ -1,41 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Activity, CreditCard, ShieldCheck, ChevronRight, UserPlus, RefreshCw, Star, Settings2, Megaphone, DollarSign, Plus } from 'lucide-react';
+import {
+    Users, Activity, CreditCard, ShieldCheck, ChevronRight, UserPlus,
+    RefreshCw, Star, Settings2, Megaphone, DollarSign, Plus, Eye,
+    Zap, Layout, Bell, Terminal, ShieldAlert, Cpu, Globe, Trash2, Mail
+} from 'lucide-react';
 import useStore from '../../store/useStore';
 import AdminService from '../../services/AdminService';
 import { useUIStore } from '../../store/useUIStore';
 import clsx from 'clsx';
 
 /**
- * AdminPage - Centralized management for Secretary App
- * Restricted to users with is_admin: true
+ * AdminPage - Total Ecosystem Control Center
+ * The "Secretary of State" dashboard for the creator.
  */
 function AdminPage() {
-    const { user } = useStore();
+    const { user, enterGhostMode } = useStore();
     const [users, setUsers] = useState([]);
-    const [stats, setStats] = useState({ total_users: 0, active_syncs: 0, premium_conversions: 0 });
+    const [stats, setStats] = useState({
+        total_users: 0,
+        active_syncs: 0,
+        premium_conversions: 0,
+        mrr: 0,
+        growth_rate: 0,
+        churn_risk: 0
+    });
     const [isLoading, setIsLoading] = useState(true);
     const [syncHealth, setSyncHealth] = useState({ total: 0, healthy: 0 });
     const [feedback, setFeedback] = useState([]);
     const [activeTab, setActiveTab] = useState('overview');
     const [settings, setSettings] = useState([]);
     const [policies, setPolicies] = useState([]);
-    const [recentActivity, setRecentActivity] = useState([
-        { id: 1, type: 'user', message: 'New user "Sarah Miller" registered', time: '10m ago', icon: <UserPlus size={14} /> },
-        { id: 2, type: 'payment', message: 'Premium subscription renewed: $9.99', time: '1h ago', icon: <CreditCard size={14} /> },
-        { id: 3, type: 'sync', message: 'Google Calendar sync optimized for 12 users', time: '3h ago', icon: <RefreshCw size={14} /> },
-        { id: 4, type: 'security', message: 'RLS Policy "Admins can manage" triggered', time: '5h ago', icon: <ShieldCheck size={14} /> },
-    ]);
+    const [aiLogs, setAiLogs] = useState([]);
+    const [broadcasts, setBroadcasts] = useState([]);
 
-    const [adConfig, setAdConfig] = useState({
-        sidebar_enabled: true,
-        inline_enabled: false,
-        affiliate_links: [
-            'https://amazon.com/?tag=mysec-20',
-            'https://shareasale.com/r.cfm?b=12345',
-            'https://partnernetwork.ebay.com/'
-        ]
-    });
-    const [isSavingAdConfig, setIsSavingAdConfig] = useState(false);
+    // Broadcast Form State
+    const [newBroadcast, setNewBroadcast] = useState({ title: '', content: '', type: 'info', target_tier: 'all' });
+    const [isBroadcasting, setIsBroadcasting] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -44,638 +44,636 @@ function AdminPage() {
     const loadData = async () => {
         setIsLoading(true);
         try {
-            const [usersList, systemStats, health, systemSettings, securityPolicies] = await Promise.all([
+            const [
+                usersList, systemStats, health, systemSettings,
+                securityPolicies, revenue, logs
+            ] = await Promise.all([
                 AdminService.listUsers(),
                 AdminService.getSystemStats(),
                 AdminService.getSyncHealth(),
                 AdminService.getSystemSettings(),
-                AdminService.getSecurityPolicies()
+                AdminService.getSecurityPolicies(),
+                AdminService.getRevenueAnalytics(),
+                AdminService.getAIAuditLogs(20)
             ]);
 
-            // Mocking feedback fetch for now since AdminService doesn't have it yet
+            // Mocking feedback fetch
             const { data: feedbackData } = await (await import('../../lib/supabase')).supabase
                 .from('user_feedback')
                 .select('*, user_profiles(name, email)')
                 .order('created_at', { ascending: false });
 
             setUsers(usersList);
-            setStats(systemStats);
+            setStats({ ...systemStats, ...revenue });
             setSyncHealth(health);
             setSettings(systemSettings);
             setPolicies(securityPolicies);
             setFeedback(feedbackData || []);
-
-            const adConf = systemSettings.find(s => s.key === 'ad_configuration');
-            if (adConf && adConf.value) {
-                setAdConfig(adConf.value);
-            }
+            setAiLogs(logs || []);
         } catch (error) {
-            console.error('[Admin] Load failed:', error);
-            useUIStore.getState().addNotification('Failed to load admin data', 'error');
+            console.error('[Admin] Global Load failed:', error);
+            useUIStore.getState().addNotification('Failed to synchronize command center data', 'error');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleTierChange = async (userId, newTier) => {
+    const handleUpdatePermissions = async (userId, key, currentVal) => {
+        const currentUser = users.find(u => u.id === userId);
+        const newPerms = {
+            ...(currentUser.admin_permissions || {}),
+            [key]: !currentVal
+        };
+
         try {
-            await AdminService.updateUserTier(userId, newTier);
-            setUsers(users.map(u => u.id === userId ? { ...u, tier: newTier } : u));
-            useUIStore.getState().addNotification('User tier updated successfully', 'success');
-        } catch (error) {
-            useUIStore.getState().addNotification('Failed to update tier', 'error');
+            await AdminService.updateAdminPermissions(userId, newPerms);
+            setUsers(users.map(u => u.id === userId ? { ...u, admin_permissions: newPerms, is_admin: Object.values(newPerms).some(v => v === true) } : u));
+            useUIStore.getState().addNotification('Administrative scope adjusted', 'success');
+        } catch (err) {
+            useUIStore.getState().addNotification('Failed to adjust permissions', 'error');
         }
     };
 
-    const handleSaveAdConfig = async () => {
-        setIsSavingAdConfig(true);
+    const handleSendBroadcast = async () => {
+        if (!newBroadcast.title || !newBroadcast.content) return;
+        setIsBroadcasting(true);
         try {
-            await AdminService.updateSystemSetting('ad_configuration', adConfig);
-            useUIStore.getState().addNotification('Ad configuration saved successfully', 'success');
-        } catch (error) {
-            useUIStore.getState().addNotification('Failed to save ad configuration', 'error');
+            await AdminService.sendBroadcast(newBroadcast);
+            useUIStore.getState().addNotification('Global broadcast transmission successful', 'success');
+            setNewBroadcast({ title: '', content: '', type: 'info', target_tier: 'all' });
+            // In a real app we'd fetch the list of broadcasts here
+        } catch (err) {
+            useUIStore.getState().addNotification('Broadcast transmission failed', 'error');
         } finally {
-            setIsSavingAdConfig(false);
+            setIsBroadcasting(false);
+        }
+    };
+
+    const handleImpersonate = (targetUser) => {
+        if (window.confirm(`Initiate Ghost Mode for ${targetUser.email}? \n\nYou will see the app exactly as they do.`)) {
+            enterGhostMode(targetUser);
+            window.location.href = '/';
         }
     };
 
     if (!user.is_admin) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-                <ShieldCheck size={64} className="text-red-500 mb-4 opacity-50 shadow-2xl shadow-red-500/20 rounded-full p-2" />
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter italic">Access <span className="text-red-500">Restricted</span></h1>
-                <p className="text-slate-500 dark:text-slate-400 font-medium mb-8">System oversight is exclusively reserved for Level 10 Administrators.</p>
+                <ShieldAlert size={64} className="text-rose-500 mb-4 animate-pulse drop-shadow-[0_0_15px_rgba(244,63,94,0.3)]" />
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white mb-2 uppercase tracking-tighter italic">Ecosystem <span className="text-rose-500">Restricted</span></h1>
+                <p className="text-slate-500 dark:text-slate-400 font-medium mb-8">Access requires verified Level 10 Clearance credentials.</p>
 
                 <div className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-6 max-w-sm w-full space-y-3">
                     <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400 font-bold uppercase">Identity</span>
+                        <span className="text-slate-400 font-bold uppercase">Subject</span>
                         <span className="text-slate-900 dark:text-white font-mono">{user.email || 'Anonymous'}</span>
                     </div>
                     <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400 font-bold uppercase">Admin Privileges</span>
-                        <span className={user.is_admin ? "text-emerald-500 font-black" : "text-red-500 font-black"}>
-                            {user.is_admin ? 'ENABLED' : 'DISABLED'}
+                        <span className="text-slate-400 font-bold uppercase">Clearance</span>
+                        <span className={user.is_admin ? "text-emerald-500 font-black" : "text-rose-500 font-black"}>
+                            {user.is_admin ? 'VERIFIED' : 'DENIED'}
                         </span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs">
-                        <span className="text-slate-400 font-bold uppercase">Database State</span>
-                        <span className="text-slate-500">Sync Pending</span>
                     </div>
                 </div>
 
                 <button
                     onClick={() => window.location.reload()}
-                    className="mt-8 px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-all active:scale-95 shadow-xl"
+                    className="mt-8 px-6 py-3 bg-slate-900 dark:bg-white text-white dark:text-black rounded-xl font-bold flex items-center gap-2 hover:opacity-90 transition-all hover:scale-105"
                 >
                     <RefreshCw size={18} />
-                    <span>Synchronize Profile</span>
+                    <span>Synchronize Credentials</span>
                 </button>
             </div>
         );
     }
 
     return (
-        <div className="max-w-7xl mx-auto">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-4">
+        <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                 <div>
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 rounded-lg bg-skin-accent flex items-center justify-center text-white shadow-lg shadow-skin-accent/20">
-                            <ShieldCheck size={20} />
+                    <div className="flex items-center gap-3 mb-2">
+                        <div className="w-10 h-10 rounded-2xl bg-slate-900 dark:bg-white flex items-center justify-center text-white dark:text-black shadow-2xl">
+                            <ShieldCheck size={24} />
                         </div>
-                        <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight italic">Matrix<span className="text-skin-accent">Admin</span></h1>
+                        <h1 className="text-4xl font-black text-slate-900 dark:text-white tracking-tight italic uppercase">Command<span className="text-skin-accent">Center</span></h1>
                     </div>
-                    <p className="text-slate-500 dark:text-slate-400 font-medium">Secretary Ecosystem Management & Global Oversight</p>
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">Global Ecosystem Oversight • v4.0.0</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="hidden sm:flex items-center px-4 py-2 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200/50 dark:border-white/5">
-                        <Activity size={16} className="text-emerald-500 mr-2" />
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">SYSTEM: STABLE</span>
+
+                <div className="flex flex-wrap items-center gap-3">
+                    <div className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 rounded-2xl">
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Global Sync: Active</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 px-4 py-2 bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-2xl">
+                        <Globe size={12} />
+                        <span className="text-[10px] font-black uppercase tracking-widest">Nodes: 12 Online</span>
                     </div>
                     <button
                         onClick={loadData}
-                        className="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm hover:scale-105 active:scale-95"
-                        title="Refresh Data"
+                        className="p-3 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-50 dark:hover:bg-white/10 transition-all shadow-sm hover:scale-110 active:scale-90"
                     >
                         <RefreshCw size={20} className={isLoading ? 'animate-spin text-skin-accent' : 'text-slate-600 dark:text-slate-400'} />
                     </button>
-                    <button className="flex items-center gap-2 px-5 py-3 bg-slate-900 dark:bg-white text-white dark:text-black rounded-2xl font-bold text-sm shadow-xl shadow-slate-900/10 dark:shadow-white/5 hover:opacity-90 transition-all">
+                    <button className="flex items-center gap-2 px-6 py-3 bg-skin-accent text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-skin-accent/20 hover:opacity-90 transition-all">
                         <Plus size={18} />
-                        <span>System Action</span>
+                        <span>Manual Override</span>
                     </button>
                 </div>
             </header>
 
-            {/* Matrix-Style Mega Tabs */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-10">
+            {/* Futuristic Mega Tabs */}
+            <nav className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-10">
                 {[
-                    { id: 'overview', label: 'Dashboard', icon: <Activity />, color: 'bg-blue-500' },
-                    { id: 'users', label: 'Users', icon: <Users />, color: 'bg-emerald-500' },
-                    { id: 'monetization', label: 'Revenue', icon: <DollarSign />, color: 'bg-amber-500' },
-                    { id: 'settings', label: 'Settings', icon: <Settings2 />, color: 'bg-indigo-500' },
-                    { id: 'security', label: 'Security', icon: <ShieldCheck />, color: 'bg-rose-500' },
-                    { id: 'feedback', label: 'Feedback', icon: <Star />, color: 'bg-violet-500' },
+                    { id: 'overview', label: 'Monitor', icon: <Activity />, color: 'bg-blue-500', group: 'System' },
+                    { id: 'users', label: 'Identity', icon: <Users />, color: 'bg-emerald-500', group: 'Society' },
+                    { id: 'monetization', label: 'Revenue', icon: <DollarSign />, color: 'bg-amber-500', group: 'Economy' },
+                    { id: 'broadcast', label: 'Broadcast', icon: <Megaphone />, color: 'bg-rose-500', group: 'Comms' },
+                    { id: 'ai_lab', label: 'AI Lab', icon: <Cpu />, color: 'bg-indigo-500', group: 'Neural' },
+                    { id: 'interface', label: 'Interface', icon: <Layout />, color: 'bg-violet-500', group: 'Visuals' },
+                    { id: 'security', label: 'Security', icon: <ShieldCheck />, color: 'bg-slate-700', group: 'Core' },
+                    { id: 'feedback', label: 'Feedback', icon: <Star />, color: 'bg-teal-500', group: 'Users' },
                 ].map((tab) => (
                     <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={clsx(
-                            "flex flex-col items-center justify-center p-6 rounded-3xl transition-all border group",
+                            "group flex flex-col items-start p-5 rounded-[2rem] transition-all border relative overflow-hidden",
                             activeTab === tab.id
-                                ? `bg-white dark:bg-slate-800 border-transparent shadow-xl ring-2 ring-${tab.id === 'monetization' ? 'amber' : tab.id === 'users' ? 'emerald' : 'skin-accent'}/20`
-                                : "bg-slate-50/50 dark:bg-white/[0.02] border-slate-200/50 dark:border-white/5 hover:bg-white dark:hover:bg-white/[0.05]"
+                                ? "bg-white dark:bg-slate-800 border-transparent shadow-2xl ring-2 ring-skin-accent/20"
+                                : "bg-slate-50/50 dark:bg-white/[0.02] border-slate-200/50 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20"
                         )}
                     >
                         <div className={clsx(
-                            "w-12 h-12 rounded-2xl flex items-center justify-center mb-3 text-white transition-transform group-hover:scale-110",
+                            "w-10 h-10 rounded-2xl flex items-center justify-center mb-4 text-white shadow-lg transition-transform group-hover:scale-110",
                             tab.color
                         )}>
                             {tab.icon}
                         </div>
-                        <span className={clsx(
-                            "text-xs font-black uppercase tracking-widest",
-                            activeTab === tab.id ? "text-slate-900 dark:text-white" : "text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300"
-                        )}>
-                            {tab.label}
-                        </span>
+                        <div className="relative z-10">
+                            <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">{tab.group}</span>
+                            <span className={clsx(
+                                "text-sm font-black uppercase tracking-tight",
+                                activeTab === tab.id ? "text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400"
+                            )}>
+                                {tab.label}
+                            </span>
+                        </div>
                     </button>
                 ))}
-            </div>
+            </nav>
 
-            {/* Conditional Content Rendering */}
-            {
-                activeTab === 'overview' && (
-                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                            {/* Site Analysis Chart (mimics reference) */}
-                            <div className="lg:col-span-2 bg-white dark:bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-sm">
-                                <div className="flex justify-between items-center mb-8">
-                                    <div>
-                                        <h3 className="text-xl font-black text-slate-900 dark:text-white">System Analysis</h3>
-                                        <p className="text-sm text-slate-400 font-medium">Real-time engagement & sync health monitoring</p>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-500/10 rounded-full">
-                                            <div className="w-2 h-2 rounded-full bg-blue-500" />
-                                            <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase">Users</span>
+            {/* Core Content Engine */}
+            <main className="min-h-[600px]">
+                {activeTab === 'overview' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[
+                                { label: 'Monthly Revenue', value: `$${stats.mrr.toLocaleString()}`, change: `+${stats.growth_rate}%`, icon: <DollarSign />, color: 'bg-emerald-500' },
+                                { label: 'Total Subjects', value: stats.total_users, change: '+124 today', icon: <Users />, color: 'bg-blue-500' },
+                                { label: 'Reasoning Health', value: '98.4%', change: '-0.2% latency', icon: <Zap />, color: 'bg-amber-500' },
+                                { label: 'Churn Probability', value: `${stats.churn_risk}%`, change: 'Optimal', icon: <Activity />, color: 'bg-rose-500' }
+                            ].map((s, i) => (
+                                <div key={i} className="bg-white dark:bg-slate-900/50 backdrop-blur-xl p-6 rounded-[2.5rem] border border-slate-200/60 dark:border-white/10 shadow-sm relative overflow-hidden group">
+                                    <div className={clsx("absolute top-0 right-0 w-32 h-32 -mr-16 -mt-16 rounded-full opacity-5 transition-transform group-hover:scale-110", s.color)} />
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className={clsx("w-10 h-10 rounded-2xl flex items-center justify-center text-white", s.color)}>
+                                            {s.icon}
                                         </div>
-                                        <div className="flex items-center gap-2 px-3 py-1 bg-emerald-50 dark:bg-emerald-500/10 rounded-full">
-                                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Growth</span>
-                                        </div>
+                                        <span className={clsx("text-[10px] font-black px-2 py-1 rounded-full", s.color.replace('bg-', 'bg-') + '/10', s.color.replace('bg-', 'text-'))}>
+                                            {s.change}
+                                        </span>
                                     </div>
+                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{s.label}</h3>
+                                    <p className="text-3xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">{s.value}</p>
                                 </div>
+                            ))} section
+                        </section>
 
-                                {/* Hero SVG Chart */}
-                                <div className="relative h-64 w-full">
-                                    <svg viewBox="0 0 800 200" className="w-full h-full drop-shadow-lg">
-                                        <defs>
-                                            <linearGradient id="gradient-blue" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.2" />
-                                                <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
-                                            </linearGradient>
-                                            <linearGradient id="gradient-green" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-                                                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-                                            </linearGradient>
-                                        </defs>
-
-                                        {/* Grid Lines */}
-                                        {[0, 50, 100, 150].map((y) => (
-                                            <line key={y} x1="0" y1={y} x2="800" y2={y} stroke="currentColor" strokeOpacity="0.05" className="text-slate-400" />
-                                        ))}
-
-                                        {/* Line 1: Blue (Users) */}
-                                        <path
-                                            d="M0,150 Q100,20 200,80 T400,120 T600,40 T800,100"
-                                            fill="none"
-                                            stroke="#3b82f6"
-                                            strokeWidth="4"
-                                            strokeLinecap="round"
-                                            className="animate-[dash_3s_ease-in-out_infinite]"
-                                        />
-                                        <path
-                                            d="M0,150 Q100,20 200,80 T400,120 T600,40 T800,100 L800,200 L0,200 Z"
-                                            fill="url(#gradient-blue)"
-                                        />
-
-                                        {/* Line 2: Green (Growth) */}
-                                        <path
-                                            d="M0,100 Q150,180 300,60 T500,40 T800,90"
-                                            fill="none"
-                                            stroke="#10b981"
-                                            strokeWidth="4"
-                                            strokeLinecap="round"
-                                            strokeDasharray="8 8"
-                                        />
-                                        <path
-                                            d="M0,100 Q150,180 300,60 T500,40 T800,90 L800,200 L0,200 Z"
-                                            fill="url(#gradient-green)"
-                                        />
-                                    </svg>
-
-                                    <div className="absolute inset-0 flex items-center justify-between px-2 text-[10px] font-bold text-slate-300 pointer-events-none uppercase tracking-widest mt-60">
-                                        <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Quick Stats Column (mimics reference right sidebar) */}
-                            <div className="space-y-4">
-                                {[
-                                    { label: 'Total Users', value: stats.total_users || users.length, icon: <Users size={16} />, color: 'text-blue-500', bg: 'bg-blue-500/10' },
-                                    { label: 'Premium Users', value: users.filter(u => u.tier === 'premium').length, icon: <Star size={16} />, color: 'text-amber-500', bg: 'bg-amber-500/10' },
-                                    { label: 'Pending Feedback', value: feedback.length, icon: <Star size={16} />, color: 'text-violet-500', bg: 'bg-violet-500/10' },
-                                    { label: 'Active Syncs', value: syncHealth.total || 0, icon: <RefreshCw size={16} />, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
-                                ].map((s, i) => (
-                                    <div key={i} className="flex items-center justify-between p-5 bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm transform transition-all hover:translate-x-1">
-                                        <div className="flex items-center gap-4">
-                                            <div className={clsx("w-10 h-10 rounded-2xl flex items-center justify-center", s.bg, s.color)}>
-                                                {s.icon}
-                                            </div>
-                                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{s.label}</span>
-                                        </div>
-                                        <span className="text-xl font-black text-slate-900 dark:text-white">{s.value}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            {/* Latest Activity (Replacement for reference "Latest Posts") */}
-                            <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-sm">
-                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6">Live Activity Audit</h3>
-                                <div className="space-y-6">
-                                    {recentActivity.map((act) => (
-                                        <div key={act.id} className="flex gap-4 group">
-                                            <div className="flex flex-col items-center">
-                                                <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:text-skin-accent transition-colors">
-                                                    {act.icon}
-                                                </div>
-                                                <div className="w-px h-full bg-slate-100 dark:bg-white/5 mt-2" />
-                                            </div>
-                                            <div className="pb-6">
-                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{act.message}</p>
-                                                <span className="text-xs text-slate-400 font-medium">{act.time}</span>
+                        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-8 rounded-[3rem] border border-slate-200/60 dark:border-white/10">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-8 flex items-center gap-3">
+                                    <Activity className="text-blue-500" />
+                                    <span>Ecosystem Performance Analysis</span>
+                                </h3>
+                                <div className="h-[300px] w-full flex items-end justify-between gap-2 px-4">
+                                    {[65, 45, 75, 55, 90, 85, 96, 78, 88, 72, 60, 85].map((h, i) => (
+                                        <div key={i} className="flex-1 group relative">
+                                            <div
+                                                className="w-full bg-gradient-to-t from-blue-500/20 to-blue-500 rounded-2xl transition-all hover:scale-x-110 hover:brightness-125 cursor-pointer shadow-lg shadow-blue-500/10"
+                                                style={{ height: `${h}%` }}
+                                            />
+                                            <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-[8px] font-black text-slate-400 uppercase">
+                                                {['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'][i]}
                                             </div>
                                         </div>
                                     ))}
                                 </div>
                             </div>
 
-                            {/* Sync Health Dashboard */}
-                            <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-white/5 shadow-sm">
-                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6">Global Sync Integrity</h3>
-                                <div className="flex items-center justify-center mb-10">
-                                    <div className="relative w-48 h-48">
-                                        <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                            <path
-                                                className="text-slate-100 dark:text-white/5"
-                                                stroke="currentColor"
-                                                strokeWidth="3"
-                                                fill="none"
-                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                            />
-                                            <path
-                                                className="text-emerald-500"
-                                                stroke="currentColor"
-                                                strokeWidth="3"
-                                                strokeDasharray={`${(syncHealth.healthy / (syncHealth.total || 1)) * 100}, 100`}
-                                                strokeLinecap="round"
-                                                fill="none"
-                                                d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                            />
-                                        </svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className="text-4xl font-black text-slate-900 dark:text-white">
-                                                {Math.round((syncHealth.healthy / (syncHealth.total || 1)) * 100)}%
+                            <div className="bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-8 rounded-[3rem] border border-slate-200/60 dark:border-white/10">
+                                <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6 flex items-center gap-3">
+                                    <Terminal className="text-indigo-500" />
+                                    <span>Sync Integrity</span>
+                                </h3>
+                                <div className="space-y-6">
+                                    {[
+                                        { label: 'Google Calendar API', status: 'Healthy', latency: '42ms', color: 'bg-emerald-500' },
+                                        { label: 'Microsoft Graph', status: 'Degraded', latency: '215ms', color: 'bg-amber-500' },
+                                        { label: 'OpenAI Reasoning', status: 'Healthy', latency: '850ms', color: 'bg-emerald-500' },
+                                        { label: 'Supabase DB', status: 'Healthy', latency: '12ms', color: 'bg-emerald-500' }
+                                    ].map((s, i) => (
+                                        <div key={i} className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/5">
+                                            <div>
+                                                <p className="text-sm font-black text-slate-700 dark:text-slate-200">{s.label}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 tracking-wider">LATENCY: {s.latency}</p>
+                                            </div>
+                                            <span className={clsx("px-2 py-1 rounded-full text-[8px] font-black uppercase text-white shadow-lg", s.color)}>
+                                                {s.status}
                                             </span>
-                                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Healthy</span>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl text-center">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Total Streams</p>
-                                        <p className="text-xl font-black text-slate-900 dark:text-white">{syncHealth.total}</p>
-                                    </div>
-                                    <div className="p-4 bg-slate-50 dark:bg-white/5 rounded-2xl text-center">
-                                        <p className="text-[10px] font-black text-slate-400 uppercase mb-1">Latency (avg)</p>
-                                        <p className="text-xl font-black text-slate-900 dark:text-white">42ms</p>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
-                )
-            }
+                )}
 
-            {
-                activeTab === 'users' && (
-                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Recent Users</h2>
-                            <div className="flex gap-2">
-                                <div className="px-3 py-1 bg-slate-100 dark:bg-white/5 rounded-lg text-xs font-bold text-slate-500">
-                                    {users.length} TOTAL
+                {activeTab === 'users' && (
+                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-[3rem] border border-slate-200/60 dark:border-white/5 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="p-10 border-b border-slate-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+                            <div>
+                                <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Identity Management</h2>
+                                <p className="text-sm text-slate-500 font-medium">Control subjects, adjust clearance, and manage administrative scopes.</p>
+                            </div>
+                            <div className="flex bg-slate-100 dark:bg-white/5 p-1 rounded-2xl border border-slate-200/50 dark:border-white/5">
+                                <div className="px-6 py-3 font-black text-xs uppercase tracking-widest text-slate-500">
+                                    {users.filter(u => u.is_admin).length} Admins
+                                </div>
+                                <div className="px-6 py-3 font-black text-xs uppercase tracking-widest text-slate-900 dark:text-white bg-white dark:bg-white/10 rounded-xl shadow-lg">
+                                    {users.length} Total
                                 </div>
                             </div>
                         </div>
 
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-slate-50 dark:bg-white/[0.02] text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                                        <th className="px-6 py-4">User</th>
-                                        <th className="px-6 py-4">Subscription</th>
-                                        <th className="px-6 py-4">Dual Sync</th>
-                                        <th className="px-6 py-4">Created</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
+                        <div className="overflow-x-auto p-4">
+                            <table className="w-full text-left border-separate border-spacing-y-3">
+                                <thead className="text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">
+                                    <tr>
+                                        <th className="px-8 py-4">Subject Information</th>
+                                        <th className="px-6 py-4">Tier Status</th>
+                                        <th className="px-6 py-4">Admin Privileges / Scopes</th>
+                                        <th className="px-6 py-4 text-right">Operational Actions</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
+                                <tbody>
                                     {users.map((u) => (
-                                        <tr key={u.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors group">
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-3">
-                                                    <img src={u.avatar_url || 'https://api.dicebear.com/7.x/avataaars/svg'} className="w-10 h-10 rounded-full bg-slate-100" />
+                                        <tr key={u.id} className="bg-slate-50 dark:bg-white/[0.02] hover:bg-white dark:hover:bg-white/5 transition-all group rounded-2xl shadow-sm">
+                                            <td className="px-8 py-5 rounded-l-[2rem]">
+                                                <div className="flex items-center gap-5">
+                                                    <div className="relative">
+                                                        <img src={u.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.id}`} className="w-14 h-14 rounded-[1.5rem] bg-slate-200 shadow-xl" />
+                                                        {u.is_admin && <div className="absolute -top-1 -right-1 w-5 h-5 bg-rose-500 text-white rounded-lg flex items-center justify-center border-2 border-white dark:border-slate-800 shadow-lg"><ShieldCheck size={10} strokeWidth={3} /></div>}
+                                                    </div>
                                                     <div>
-                                                        <div className="font-bold text-slate-900 dark:text-white">{u.name}</div>
-                                                        <div className="text-xs text-slate-400">{u.email}</div>
+                                                        <div className="font-black text-lg text-slate-900 dark:text-white tracking-tight leading-none mb-1">{u.name}</div>
+                                                        <div className="text-xs text-slate-400 font-bold font-mono tracking-tighter">{u.email}</div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <select
-                                                    value={u.tier}
-                                                    onChange={(e) => handleTierChange(u.id, e.target.value)}
-                                                    className="bg-transparent border-none text-sm font-bold focus:ring-0 cursor-pointer text-indigo-600 dark:text-indigo-400"
-                                                >
-                                                    <option value="free">FREE</option>
-                                                    <option value="premium">PREMIUM</option>
-                                                    <option value="trial">TRIAL</option>
-                                                </select>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex gap-1">
-                                                    {u.integrations?.google && <span className="w-2 h-2 rounded-full bg-blue-500" title="Google" />}
-                                                    {u.integrations?.outlook && <span className="w-2 h-2 rounded-full bg-indigo-600" title="Outlook" />}
-                                                    {u.integrations?.apple && <span className="w-2 h-2 rounded-full bg-slate-900 dark:bg-white" title="Apple" />}
-                                                    {!u.integrations && <span className="text-[10px] text-slate-400 font-medium italic">No active syncs</span>}
-                                                </div>
-                                            </td>
-                                            <td className="px-6 py-4 text-sm text-slate-400">
-                                                {new Date(u.created_at).toLocaleDateString()}
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button className="p-2 text-slate-400 hover:text-skin-accent transition-colors opacity-0 group-hover:opacity-100">
-                                                    <ChevronRight size={20} />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {users.length === 0 && !isLoading && (
-                            <div className="p-20 text-center">
-                                <UserPlus size={48} className="mx-auto text-slate-200 dark:text-white/10 mb-4" />
-                                <p className="text-slate-400">No users found in the system.</p>
-                            </div>
-                        )}
-                    </div>
-                )
-            }
-
-            {
-                activeTab === 'settings' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        {settings.map((setting) => (
-                            <div key={setting.key} className="bg-white dark:bg-slate-900/50 backdrop-blur-xl p-6 rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm">
-                                <div className="flex justify-between items-start mb-4">
-                                    <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-wider text-xs">{setting.key.replace(/_/g, ' ')}</h3>
-                                    <span className="text-[10px] text-slate-400">Last updated: {new Date(setting.updated_at).toLocaleDateString()}</span>
-                                </div>
-                                <textarea
-                                    className="w-full bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/10 rounded-xl p-4 text-sm font-mono text-slate-600 dark:text-slate-300 min-h-[120px] focus:ring-1 focus:ring-skin-accent outline-none transition-all"
-                                    defaultValue={JSON.stringify(setting.value, null, 2)}
-                                    onBlur={async (e) => {
-                                        try {
-                                            const newVal = JSON.parse(e.target.value);
-                                            await AdminService.updateSystemSetting(setting.key, newVal);
-                                            useUIStore.getState().addNotification(`Successfully updated ${setting.key}`, 'success');
-                                        } catch (err) {
-                                            useUIStore.getState().addNotification('Invalid JSON format', 'error');
-                                        }
-                                    }}
-                                />
-                                <p className="mt-4 text-xs text-slate-400 italic font-medium">{setting.description}</p>
-                            </div>
-                        ))}
-                    </div>
-                )
-            }
-
-            {
-                activeTab === 'security' && (
-                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Active RLS Policies</h2>
-                            <p className="text-sm text-slate-400 mt-1">Direct oversight of Row Level Security across the platform.</p>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 dark:bg-white/[0.02] text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                                    <tr>
-                                        <th className="px-6 py-4">Table</th>
-                                        <th className="px-6 py-4">Policy Name</th>
-                                        <th className="px-6 py-4">Action</th>
-                                        <th className="px-6 py-4">Definition</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                    {policies.map((policy, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
-                                            <td className="px-6 py-4 font-bold text-slate-900 dark:text-white capitalize">{policy.tablename}</td>
-                                            <td className="px-6 py-4 text-sm text-slate-500">{policy.policyname}</td>
-                                            <td className="px-6 py-4">
+                                            <td className="px-6 py-5">
                                                 <span className={clsx(
-                                                    "px-2 py-1 rounded text-[10px] font-black uppercase",
-                                                    policy.cmd === 'SELECT' ? "bg-blue-50 text-blue-600" :
-                                                        policy.cmd === 'ALL' ? "bg-red-50 text-red-600" : "bg-orange-50 text-orange-600"
+                                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm",
+                                                    u.tier === 'premium' ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" : "bg-slate-500/10 text-slate-500 border border-slate-500/20"
                                                 )}>
-                                                    {policy.cmd}
+                                                    {u.tier}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-xs font-mono text-slate-400 max-w-sm truncate hover:whitespace-normal hover:break-all transition-all cursor-help">
-                                                {policy.qual || 'No restrictions'}
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )
-            }
-
-            {
-                activeTab === 'feedback' && (
-                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                        <div className="p-6 border-b border-slate-100 dark:border-white/5">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">User Feedback</h2>
-                            <p className="text-sm text-slate-500 mt-1">Direct reviews and satisfaction ratings from your users.</p>
-                        </div>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50 dark:bg-white/[0.02] text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                                    <tr>
-                                        <th className="px-6 py-4">User</th>
-                                        <th className="px-6 py-4">Rating</th>
-                                        <th className="px-6 py-4">Comment</th>
-                                        <th className="px-6 py-4 text-right">Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-white/5">
-                                    {feedback.map((f) => (
-                                        <tr key={f.id} className="hover:bg-slate-50 dark:hover:bg-white/[0.01] transition-colors">
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm font-bold text-slate-900 dark:text-white">{f.user_profiles?.name || 'Anonymous'}</div>
-                                                <div className="text-[10px] text-slate-400">{f.user_profiles?.email || 'N/A'}</div>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex gap-1">
-                                                    {[1, 2, 3, 4, 5].map(star => (
-                                                        <Star
-                                                            key={star}
-                                                            size={12}
-                                                            className={star <= f.rating ? "text-amber-400 fill-amber-400" : "text-slate-200 dark:text-white/5"}
-                                                        />
+                                            <td className="px-6 py-5">
+                                                <div className="flex flex-wrap gap-2 max-w-sm">
+                                                    {[
+                                                        { key: 'manage_users', label: 'Users', color: 'bg-emerald-500' },
+                                                        { key: 'manage_billing', label: 'Billing', color: 'bg-amber-500' },
+                                                        { key: 'manage_system', label: 'System', color: 'bg-blue-500' },
+                                                        { key: 'manage_content', label: 'Content', color: 'bg-rose-500' }
+                                                    ].map(perm => (
+                                                        <button
+                                                            key={perm.key}
+                                                            onClick={() => handleUpdatePermissions(u.id, perm.key, u.admin_permissions?.[perm.key])}
+                                                            className={clsx(
+                                                                "px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95",
+                                                                u.admin_permissions?.[perm.key]
+                                                                    ? `${perm.color} text-white shadow-lg`
+                                                                    : "bg-slate-100 dark:bg-white/5 text-slate-400 grayscale border border-slate-200 dark:border-white/5"
+                                                            )}
+                                                        >
+                                                            {perm.label}
+                                                        </button>
                                                     ))}
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-300 max-w-md">
-                                                {f.comment || <span className="italic text-slate-400">No comment provided</span>}
-                                            </td>
-                                            <td className="px-6 py-4 text-right text-xs text-slate-400">
-                                                {new Date(f.created_at).toLocaleDateString()}
+                                            <td className="px-8 py-5 text-right rounded-r-[2rem]">
+                                                <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button
+                                                        onClick={() => handleImpersonate(u)}
+                                                        className="p-3 bg-blue-500 text-white rounded-2xl shadow-xl shadow-blue-500/10 hover:brightness-110 active:scale-90 flex items-center gap-2"
+                                                        title="Ghost Mode"
+                                                    >
+                                                        <Eye size={16} strokeWidth={3} />
+                                                        <span className="text-[10px] font-black uppercase tracking-widest">Ghost</span>
+                                                    </button>
+                                                    <button className="p-3 bg-white dark:bg-white/10 text-slate-400 hover:text-rose-500 rounded-2xl shadow-sm active:scale-90 border border-slate-200/50 dark:border-white/5">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                        {feedback.length === 0 && (
-                            <div className="p-20 text-center">
-                                <p className="text-slate-400">No feedback received yet.</p>
-                            </div>
-                        )}
                     </div>
-                )
-            }
+                )}
 
-            {
-                activeTab === 'monetization' && (
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-8">
-                        {/* Ads & Affiliates Control */}
-                        <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm overflow-hidden">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center gap-3">
-                                <Megaphone className="text-emerald-500" size={24} />
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Ads & Affiliate Network</h2>
-                                    <p className="text-sm text-slate-500 mt-1">Configure the ad banners served to free tier users.</p>
-                                </div>
-                            </div>
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-4">
-                                    <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer">
-                                        <div>
-                                            <div className="font-bold text-slate-900 dark:text-white">Enable Sidebar Banner</div>
-                                            <div className="text-xs text-slate-500">Show native affiliate banner in the left navigation</div>
+                {activeTab === 'broadcast' && (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        {/* Composer */}
+                        <div className="lg:col-span-2 bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-10 rounded-[3rem] border border-slate-200/60 dark:border-white/10 shadow-2xl">
+                            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-8 flex items-center gap-4 italic italic tracking-tight">
+                                <Megaphone size={32} className="text-rose-500" />
+                                <span>Global Terminal Broadcast</span>
+                            </h3>
+
+                            <div className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Transmission Alert Level</label>
+                                        <div className="flex gap-2">
+                                            {['info', 'warning', 'promo', 'critical'].map(t => (
+                                                <button
+                                                    key={t}
+                                                    onClick={() => setNewBroadcast({ ...newBroadcast, type: t })}
+                                                    className={clsx(
+                                                        "flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all",
+                                                        newBroadcast.type === t
+                                                            ? "bg-rose-500 text-white shadow-xl shadow-rose-500/20"
+                                                            : "bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-white/5"
+                                                    )}
+                                                >
+                                                    {t}
+                                                </button>
+                                            ))}
                                         </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={adConfig.sidebar_enabled}
-                                            onChange={(e) => setAdConfig({ ...adConfig, sidebar_enabled: e.target.checked })}
-                                            className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300"
-                                        />
-                                    </label>
-                                    <label className="flex items-center justify-between p-4 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl cursor-pointer">
-                                        <div>
-                                            <div className="font-bold text-slate-900 dark:text-white">Enable In-Line App Ads</div>
-                                            <div className="text-xs text-slate-500">Show Google AdSense inside dashboard feeds</div>
-                                        </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={adConfig.inline_enabled}
-                                            onChange={(e) => setAdConfig({ ...adConfig, inline_enabled: e.target.checked })}
-                                            className="w-5 h-5 rounded text-skin-accent focus:ring-skin-accent bg-slate-100 border-slate-300"
-                                        />
-                                    </label>
-                                </div>
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Affiliate Links (One per line)</label>
-                                        <textarea
-                                            className="w-full bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-3 text-sm focus:ring-2 focus:ring-skin-accent outline-none text-slate-900 dark:text-white transition-all h-28 resize-none font-mono"
-                                            placeholder="https://amazon.com/?tag=mysec-20&#10;https://shareasale.com/..."
-                                            value={(adConfig.affiliate_links || []).join('\n')}
-                                            onChange={(e) => setAdConfig({ ...adConfig, affiliate_links: e.target.value.split('\n') })}
-                                        />
-                                        <p className="text-[10px] text-slate-400 mt-2">The system will randomly rotate through these links in ad placements.</p>
                                     </div>
-                                    <button
-                                        onClick={handleSaveAdConfig}
-                                        disabled={isSavingAdConfig}
-                                        className="w-full bg-slate-900 dark:bg-white text-white dark:text-black font-bold py-3 rounded-xl hover:opacity-90 transition-opacity flex justify-center items-center gap-2"
-                                    >
-                                        {isSavingAdConfig && <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />}
-                                        <span>{isSavingAdConfig ? 'Saving...' : 'Save Ad Configuration'}</span>
-                                    </button>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Target Audience Segment</label>
+                                        <select
+                                            value={newBroadcast.target_tier}
+                                            onChange={(e) => setNewBroadcast({ ...newBroadcast, target_tier: e.target.value })}
+                                            className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl py-3 px-4 font-black text-xs uppercase text-slate-700 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/50"
+                                        >
+                                            <option value="all">Global Population (ALL)</option>
+                                            <option value="free">Standard Subjects (FREE)</option>
+                                            <option value="premium">Elite Subjects (PREMIUM)</option>
+                                        </select>
+                                    </div>
                                 </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Transmission Title</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter headline..."
+                                        value={newBroadcast.title}
+                                        onChange={(e) => setNewBroadcast({ ...newBroadcast, title: e.target.value })}
+                                        className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl py-4 px-6 font-bold text-lg text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-rose-500/50"
+                                    />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Message Payload</label>
+                                    <textarea
+                                        placeholder="Compose your transmission..."
+                                        rows={6}
+                                        value={newBroadcast.content}
+                                        onChange={(e) => setNewBroadcast({ ...newBroadcast, content: e.target.value })}
+                                        className="w-full bg-slate-100 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-3xl py-4 px-6 font-medium text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-rose-500/50 resize-none"
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSendBroadcast}
+                                    disabled={isBroadcasting || !newBroadcast.title || !newBroadcast.content}
+                                    className="w-full py-5 bg-rose-500 hover:bg-rose-600 disabled:opacity-50 text-white rounded-[2rem] font-black uppercase tracking-[0.3em] text-sm shadow-2xl shadow-rose-500/30 transition-all flex items-center justify-center gap-3 active:scale-95"
+                                >
+                                    {isBroadcasting ? <RefreshCw className="animate-spin" /> : <Zap size={20} fill="white" />}
+                                    <span>Initiate Global Broadcast</span>
+                                </button>
                             </div>
                         </div>
 
-                        {/* Subscription Pricing */}
-                        <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl border border-slate-200/60 dark:border-white/5 shadow-sm overflow-hidden">
-                            <div className="p-6 border-b border-slate-100 dark:border-white/5 flex items-center gap-3">
-                                <DollarSign className="text-skin-accent" size={24} />
-                                <div>
-                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Premium Subscriptions</h2>
-                                    <p className="text-sm text-slate-500 mt-1">Manage pricing tiers and Stripe integration.</p>
-                                </div>
+                        {/* Recent History */}
+                        <div className="bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-8 rounded-[3rem] border border-slate-200/60 dark:border-white/10">
+                            <h3 className="text-xl font-black text-slate-900 dark:text-white mb-6 uppercase tracking-tight">Broadcast Archives</h3>
+                            <div className="space-y-4">
+                                {broadcasts.length === 0 ? (
+                                    <div className="py-20 text-center space-y-4 opacity-30">
+                                        <Bell size={48} className="mx-auto" />
+                                        <p className="text-[10px] font-black uppercase tracking-widest">No previous transmissions</p>
+                                    </div>
+                                ) : (
+                                    broadcasts.map((b, i) => <div key={i}>{/* list items */}</div>)
+                                )}
                             </div>
-                            <div className="p-6">
-                                <div className="flex flex-col md:flex-row gap-6 mb-6">
-                                    <div className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-6 relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-4">
-                                            <span className="bg-skin-accent/10 text-skin-accent text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">Live</span>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'interface' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-10 rounded-[3rem] border border-slate-200/60 dark:border-white/10">
+                            <div className="flex justify-between items-start mb-10">
+                                <div>
+                                    <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter mb-2">Interface Engine</h3>
+                                    <p className="text-sm text-slate-400 font-medium">Overhaul the digital fabric. Adjust placement, colors, and global content tokens.</p>
+                                </div>
+                                <button className="px-6 py-3 bg-white dark:bg-white/10 text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:brightness-110 shadow-lg">
+                                    Restore Originals
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+                                <div className="space-y-8">
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Global Visual Tokens</h4>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {[
+                                                { label: 'Primary Accent', value: '#6366f1', type: 'color' },
+                                                { label: 'System Surface', value: '#ffffff', type: 'color' },
+                                                { label: 'Border Radius', value: '2.5rem', type: 'text' },
+                                                { label: 'Font Matrix', value: 'Outfit, Inter', type: 'text' }
+                                            ].map((t, i) => (
+                                                <div key={i} className="p-4 bg-slate-50 dark:bg-white/[0.03] rounded-2xl border border-slate-100 dark:border-white/5">
+                                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.label}</p>
+                                                    <div className="flex items-center gap-3">
+                                                        {t.type === 'color' && <div className="w-8 h-8 rounded-lg shadow-inner" style={{ backgroundColor: t.value }} />}
+                                                        <input type="text" defaultValue={t.value} className="bg-transparent border-none font-mono text-xs font-bold text-slate-600 dark:text-slate-200 focus:ring-0 p-0" />
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-1">Monthly Premium</h3>
-                                        <div className="text-4xl font-black text-slate-900 dark:text-white mb-4">$5.00<span className="text-sm text-slate-400 font-normal">/mo</span></div>
-                                        <div className="space-y-2 mb-6">
-                                            <div className="text-xs text-slate-500 font-medium">Stripe Price ID: <code className="bg-slate-200 dark:bg-white/10 px-1 rounded">price_1T71fDHCuFYSkqce9H96ZrlR</code></div>
-                                            <div className="text-xs text-slate-500 font-medium">Features: Ad-Free, AI Planning, Unlimited Sync</div>
-                                        </div>
-                                        <button className="w-full border border-slate-300 dark:border-white/20 text-slate-700 dark:text-white font-bold py-2 rounded-xl hover:bg-slate-100 dark:hover:bg-white/5 transition-colors text-sm">
-                                            Edit Price Plan
-                                        </button>
                                     </div>
 
-                                    <div className="flex-1 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl p-6 flex flex-col items-center justify-center text-center opacity-70 group hover:opacity-100 transition-opacity cursor-pointer">
-                                        <div className="w-12 h-12 rounded-full bg-slate-200 dark:bg-white/10 flex items-center justify-center mb-3 group-hover:bg-skin-accent group-hover:text-white transition-colors">
-                                            <Plus size={24} />
+                                    <div className="space-y-4 p-6 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10">
+                                        <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Layout Sequence Config</h4>
+                                        <div className="space-y-3">
+                                            {[
+                                                { feature: 'Ecosystem Status Header', enabled: true },
+                                                { feature: 'Neural Reasoning Flow', enabled: true },
+                                                { feature: 'Revenue Analytics Beta', enabled: false },
+                                                { feature: 'Legacy Task List', enabled: false },
+                                            ].map((f, i) => (
+                                                <div key={i} className="flex items-center justify-between">
+                                                    <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{f.feature}</span>
+                                                    <div className={clsx("w-10 h-5 rounded-full p-1 cursor-pointer transition-colors", f.enabled ? "bg-indigo-500" : "bg-slate-300 dark:bg-white/10")}>
+                                                        <div className={clsx("w-3 h-3 bg-white rounded-full transition-transform", f.enabled ? "translate-x-5" : "translate-x-0")} />
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
-                                        <h3 className="font-bold text-slate-900 dark:text-white">Add Yearly Plan</h3>
-                                        <p className="text-xs text-slate-500 max-w-[200px] mt-1">Offer a discount for annual billing to increase retention.</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Configuration Payload (JSON)</h4>
+                                    <div className="bg-slate-900 rounded-[2rem] p-6 font-mono text-xs text-emerald-400 overflow-hidden shadow-2xl h-full border border-white/5">
+                                        <pre className="overflow-auto max-h-[400px]">
+                                            {`{
+  "ecosystem": "secretary-v4",
+  "placement": {
+    "header": "fixed",
+    "sidebar": "glassmorphic",
+    "dashboard": [
+      "status",
+      "analytics",
+      "neural_flow"
+    ]
+  },
+  "typography": {
+    "headings": "Outfit",
+    "body": "Inter",
+    "mono": "Space Mono"
+  },
+  "interactions": {
+    "hover_scales": true,
+    "magnetic_buttons": true,
+    "transitions": "700ms cubic-bezier"
+  }
+}`}
+                                        </pre>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )
-            }
-        </div >
+                )}
+
+                {activeTab === 'ai_lab' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                            <div className="bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-10 rounded-[3rem] border border-slate-200/60 dark:border-white/10 shadow-2xl overflow-hidden relative">
+                                <div className="absolute top-0 right-0 p-8 opacity-10"><Cpu size={120} /></div>
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase italic tracking-tighter">Neural Engine Audit</h3>
+                                <p className="text-sm text-slate-400 font-medium mb-10">Monitor the collective reasoning performance and NLP success across the population.</p>
+
+                                <div className="space-y-8">
+                                    <div className="grid grid-cols-2 gap-6">
+                                        <div className="p-6 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10">
+                                            <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-1">Reasoning Success</p>
+                                            <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">99.2%</p>
+                                        </div>
+                                        <div className="p-6 bg-violet-500/5 rounded-[2rem] border border-violet-500/10">
+                                            <p className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-1">Avg. Tokens / Goal</p>
+                                            <p className="text-4xl font-black text-slate-900 dark:text-white tracking-tighter">482</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Real-time Reasoning Stream</h4>
+                                        <div className="space-y-3">
+                                            {aiLogs.length === 0 ? (
+                                                <p className="text-xs text-slate-400 italic py-10 border border-dashed rounded-[2rem] text-center border-slate-200 dark:border-white/10">No logs captured in current sequence.</p>
+                                            ) : (
+                                                aiLogs.map((log, i) => (
+                                                    <div key={i} className="flex items-center gap-4 bg-slate-50 dark:bg-white/[0.03] p-4 rounded-2xl border border-slate-100 dark:border-white/5">
+                                                        <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="text-xs font-black text-slate-700 dark:text-slate-200 truncate">{log.input_text}</p>
+                                                            <p className="text-[8px] font-bold text-slate-400 tracking-widest uppercase">{log.user_profiles?.email} • {log.latency}ms</p>
+                                                        </div>
+                                                        <div className="text-[10px] font-black text-indigo-500 px-2 py-1 bg-indigo-500/10 rounded-lg">
+                                                            {log.type}
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-10 rounded-[3rem] border border-slate-200/60 dark:border-white/10 shadow-2xl">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase italic tracking-tighter">Neural Training Tokens</h3>
+                                <p className="text-sm text-slate-400 font-medium mb-10">Configure global reasoning behavior and system prompts.</p>
+
+                                <div className="space-y-6">
+                                    <div className="p-6 bg-slate-50 dark:bg-white/[0.03] rounded-[2rem] border border-slate-100 dark:border-white/5">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Global Reasoning Prompt</h4>
+                                            <button className="text-[10px] font-black text-indigo-500 hover:scale-110 active:scale-95 transition-all">EDIT</button>
+                                        </div>
+                                        <p className="text-xs font-medium text-slate-500 line-clamp-4 leading-relaxed italic">
+                                            "You are the Secretary Assistant Reasoning Engine. Your primary objective is to decompose complex human intent into actionable architectural sequences. Maintain a premium, executive tone..."
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Model Selection</h4>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {[
+                                                { name: 'Gemini 2.0 Flash', active: true, desc: 'High performance, low latency' },
+                                                { name: 'Gemini 1.5 Pro', active: false, desc: 'Deep reasoning, complex planning' },
+                                                { name: 'GPT-4o Integration', active: false, desc: 'External fallback infrastructure' }
+                                            ].map((m, i) => (
+                                                <div key={i} className={clsx(
+                                                    "p-4 rounded-2xl border transition-all cursor-pointer flex items-center justify-between group",
+                                                    m.active ? "bg-indigo-500 border-transparent shadow-lg" : "bg-white dark:bg-white/[0.03] border-slate-100 dark:border-white/10"
+                                                )}>
+                                                    <div>
+                                                        <p className={clsx("text-xs font-black uppercase tracking-widest", m.active ? "text-white" : "text-slate-700 dark:text-slate-200")}>{m.name}</p>
+                                                        <p className={clsx("text-[10px] font-medium", m.active ? "text-indigo-100" : "text-slate-400")}>{m.desc}</p>
+                                                    </div>
+                                                    {m.active && <div className="w-6 h-6 rounded-full bg-white flex items-center justify-center text-indigo-500 shadow-md"><ShieldCheck size={14} strokeWidth={3} /></div>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main>
+
+            <footer className="mt-20 py-10 border-t border-slate-100 dark:border-white/5 text-center">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Secretary Operational Command • End of Transmission</p>
+                <div className="flex justify-center gap-6 mt-6 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all">
+                    <ShieldCheck size={20} />
+                    <Terminal size={20} />
+                    <Cpu size={20} />
+                </div>
+            </footer>
+        </div>
     );
 }
 

@@ -18,6 +18,7 @@ import CheckoutPage from './components/Commerce/CheckoutPage';
 import FeedbackSystem from './components/UI/FeedbackSystem';
 import { SubdomainHandler } from './components/Layout/SubdomainHandler';
 import ErrorBoundary from './components/ErrorBoundary';
+import { GhostModeBanner } from './components/Admin/GhostModeBanner';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <ThemeManager />
           <NotificationCenter />
           <FeedbackSystem />
+          <GhostModeBanner />
           <Routes>
             <Route path="/login" element={<LoginPage />} />
             <Route path="/auth/:provider/callback" element={<OAuthCallback />} />

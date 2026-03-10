@@ -22,8 +22,16 @@ const useStore = create((set, get) => ({
             apple: false
         },
         tier: 'free',
-        is_admin: false
+        is_admin: false,
+        admin_permissions: {
+            manage_users: false,
+            manage_billing: false,
+            manage_system: false,
+            manage_content: false
+        }
     },
+    impersonatedUser: null, // Stores the profile of the user being viewed in Ghost Mode
+    isImpersonating: false,
     adConfig: {
         sidebar_enabled: true,
         inline_enabled: false,
@@ -417,6 +425,23 @@ const useStore = create((set, get) => ({
         if (todayTasks.length === 0) return 0;
         const completed = todayTasks.filter(t => t.completed).length;
         return Math.round((completed / todayTasks.length) * 100);
+    },
+
+    // Admin Specific Store Actions
+    enterGhostMode: (targetUser) => {
+        set({
+            impersonatedUser: targetUser,
+            isImpersonating: true
+        });
+        console.log(`[Store] Ghost Mode Active: Viewing as ${targetUser.email}`);
+    },
+
+    exitGhostMode: () => {
+        set({
+            impersonatedUser: null,
+            isImpersonating: false
+        });
+        console.log('[Store] Ghost Mode Terminated.');
     }
 }));
 

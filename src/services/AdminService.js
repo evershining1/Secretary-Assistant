@@ -25,7 +25,7 @@ export class AdminService {
     }
 
     /**
-     * List all user profiles (Admin only RLS required)
+     * List all user profiles with administrative metadata
      */
     static async listUsers(page = 0, limit = 20) {
         const { data, error } = await supabase
@@ -39,12 +39,15 @@ export class AdminService {
     }
 
     /**
-     * Update user tier
+     * Update user role and granular permissions
      */
-    static async updateUserTier(userId, tier) {
+    static async updateAdminPermissions(userId, permissions) {
         const { data, error } = await supabase
             .from('user_profiles')
-            .update({ tier })
+            .update({
+                admin_permissions: permissions,
+                is_admin: Object.values(permissions).some(v => v === true)
+            })
             .eq('id', userId)
             .select()
             .single();
@@ -54,13 +57,19 @@ export class AdminService {
     }
 
     /**
-     * Toggle admin status for a user
+     * Send Global Broadcast to all users
      */
-    static async toggleAdmin(userId, isAdmin) {
+    static async sendBroadcast(broadcast) {
         const { data, error } = await supabase
-            .from('user_profiles')
-            .update({ is_admin: isAdmin })
-            .eq('id', userId)
+            .from('system_broadcasts')
+            .insert({
+                title: broadcast.title,
+                content: broadcast.content,
+                type: broadcast.type || 'info', // 'info', 'warning', 'promo'
+                target_tier: broadcast.target_tier || 'all',
+                expires_at: broadcast.expires_at || null,
+                created_by: (await supabase.auth.getUser()).data.user?.id
+            })
             .select()
             .single();
 
@@ -69,50 +78,75 @@ export class AdminService {
     }
 
     /**
-     * Monitor Global Sync Health
-     * (Simulated query, in prod this would check logs/events)
+     * Get AI Reasoning Audit Logs
      */
-    static async getSyncHealth() {
+    static async getAIAuditLogs(limit = 50) {
         const { data, error } = await supabase
+            .from('ai_audit_logs')
+            .select('*, user_profiles(name, email)')
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.warn('[AdminService] ai_audit_logs table might not exist yet.');
+            return [];
+        }
+        return data;
+    }
+
+    /**
+     * Toggle Global Sync Kill Switch
+     */
+    static async toggleGlobalSync(enabled) {
+        return this.updateSystemSetting('global_sync_active', enabled);
+    }
+
+    /**
+     * Update Application Layout/Content Configuration
+     * Allows admin to change "placement of everything"
+     */
+    static async updateLayoutConfig(config) {
+        return this.updateSystemSetting('ui_layout_config', config);
+    }
+
+    /**
+     * Get Detailed Revenue Analytics
+     */
+    static async getRevenueAnalytics() {
+        const { data: users, error } = await supabase
             .from('user_profiles')
-            .select('last_sync_status');
+            .select('tier, created_at');
 
-        if (error) return { total: 0, healthy: 0 };
+        if (error) throw error;
 
-        const stats = data.reduce((acc, profile) => {
-            acc.total++;
-            if (profile.last_sync_status?.healthy) acc.healthy++;
-            return acc;
-        }, { total: 0, healthy: 0 });
+        // Basic calculation for MRR and Churn
+        const premiumUsers = users.filter(u => u.tier === 'premium').length;
+        const mrr = premiumUsers * 5.00; // Hardcoded $5 for now
 
-        return stats;
+        return {
+            mrr,
+            total_premium: premiumUsers,
+            growth_rate: 12.5, // Mocked for now
+            churn_risk: 5.2 // Mocked for now
+        };
     }
 
     /**
-     * Get all global system settings
+     * Support Ghost Mode (User Impersonation Tooling)
+     * Generates a sync event to let the frontend know to "View As"
      */
-    static async getSystemSettings() {
-        const { data, error } = await supabase
-            .from('system_settings')
-            .select('*');
+    static async initiateImpersonation(userId) {
+        console.log(`[Admin] Initiating ghost mode for user: ${userId}`);
+        // This is primarily handled in the store, but we log it here
+        const { error } = await supabase
+            .from('admin_audit_logs')
+            .insert({
+                action: 'impersonation_start',
+                target_user_id: userId,
+                admin_id: (await supabase.auth.getUser()).data.user?.id
+            });
 
-        if (error) throw error;
-        return data;
-    }
-
-    /**
-     * Update a specific system setting
-     */
-    static async updateSystemSetting(key, value) {
-        const { data, error } = await supabase
-            .from('system_settings')
-            .update({ value, updated_at: new Date().toISOString() })
-            .eq('key', key)
-            .select()
-            .single();
-
-        if (error) throw error;
-        return data;
+        return { success: !error };
     }
 
     /**
@@ -128,6 +162,37 @@ export class AdminService {
             return [];
         }
         return data;
+    }
+
+    /**
+     * Update a specific system setting
+     */
+    static async updateSystemSetting(key, value) {
+        // First check if it exists to decide on insert vs update
+        const { data: existing } = await supabase
+            .from('system_settings')
+            .select('*')
+            .eq('key', key)
+            .single();
+
+        let result;
+        if (existing) {
+            result = await supabase
+                .from('system_settings')
+                .update({ value, updated_at: new Date().toISOString() })
+                .eq('key', key)
+                .select()
+                .single();
+        } else {
+            result = await supabase
+                .from('system_settings')
+                .insert({ key, value, updated_at: new Date().toISOString() })
+                .select()
+                .single();
+        }
+
+        if (result.error) throw result.error;
+        return result.data;
     }
 
     /**
