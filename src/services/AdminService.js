@@ -196,6 +196,21 @@ export class AdminService {
     }
 
     /**
+     * Update user tier
+     */
+    static async updateUserTier(userId, tier) {
+        const { data, error } = await supabase
+            .from('user_profiles')
+            .update({ tier })
+            .eq('id', userId)
+            .select()
+            .single();
+
+        if (error) throw error;
+        return data;
+    }
+
+    /**
      * Update User Profile (Full access for Admin)
      */
     static async fullUpdateUser(userId, updates) {

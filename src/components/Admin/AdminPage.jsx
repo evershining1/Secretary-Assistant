@@ -116,6 +116,55 @@ function AdminPage() {
         }
     };
 
+    const handleUpdateUserTier = async (userId, tier) => {
+        try {
+            await AdminService.updateUserTier(userId, tier);
+            setUsers(users.map(u => u.id === userId ? { ...u, tier } : u));
+            useUIStore.getState().addNotification(`User elevated to ${tier}`, 'success');
+        } catch (err) {
+            useUIStore.getState().addNotification('Tier update failed', 'error');
+        }
+    };
+
+    const handleUpdateSystemSetting = async (key, value) => {
+        try {
+            await AdminService.updateSystemSetting(key, value);
+            setSettings(settings.map(s => s.key === key ? { ...s, value } : s));
+            useUIStore.getState().addNotification(`System setting "${key}" updated`, 'success');
+        } catch (err) {
+            useUIStore.getState().addNotification('Setting update failed', 'error');
+        }
+    };
+
+    const handleUpdateLayoutFeature = async (featureIndex, enabled) => {
+        const currentLayout = settings.find(s => s.key === 'ui_layout_config')?.value || { features: [] };
+        const newFeatures = [...(currentLayout.features || [])];
+        newFeatures[featureIndex] = { ...newFeatures[featureIndex], enabled };
+
+        const newConfig = { ...currentLayout, features: newFeatures };
+
+        try {
+            await AdminService.updateSystemSetting('ui_layout_config', newConfig);
+            setSettings(settings.map(s => s.key === 'ui_layout_config' ? { ...s, value: newConfig } : s));
+            useUIStore.getState().addNotification('Interface layout adjusted', 'success');
+        } catch (err) {
+            useUIStore.getState().addNotification('Layout update failed', 'error');
+        }
+    };
+
+    const handleUpdateVisualToken = async (tokenKey, value) => {
+        const currentTokens = settings.find(s => s.key === 'visual_tokens')?.value || {};
+        const newTokens = { ...currentTokens, [tokenKey]: value };
+
+        try {
+            await AdminService.updateSystemSetting('visual_tokens', newTokens);
+            setSettings(settings.map(s => s.key === 'visual_tokens' ? { ...s, value: newTokens } : s));
+            useUIStore.getState().addNotification('Visual identity synchronized', 'success');
+        } catch (err) {
+            useUIStore.getState().addNotification('Token update failed', 'error');
+        }
+    };
+
     if (!user.is_admin) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
@@ -342,12 +391,18 @@ function AdminPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5">
-                                                <span className={clsx(
-                                                    "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm",
-                                                    u.tier === 'premium' ? "bg-amber-500/10 text-amber-600 border border-amber-500/20" : "bg-slate-500/10 text-slate-500 border border-slate-500/20"
-                                                )}>
-                                                    {u.tier}
-                                                </span>
+                                                <select
+                                                    value={u.tier}
+                                                    onChange={(e) => handleUpdateUserTier(u.id, e.target.value)}
+                                                    className={clsx(
+                                                        "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm bg-transparent outline-none cursor-pointer border transition-all",
+                                                        u.tier === 'premium' ? "text-amber-600 border-amber-500/20" : "text-slate-500 border-slate-500/20"
+                                                    )}
+                                                >
+                                                    <option value="free">Standard (FREE)</option>
+                                                    <option value="premium">Elite (PREMIUM)</option>
+                                                    <option value="enterprise">Enterprise</option>
+                                                </select>
                                             </td>
                                             <td className="px-6 py-5">
                                                 <div className="flex flex-wrap gap-2 max-w-sm">
@@ -527,17 +582,20 @@ function AdminPage() {
                                     <div className="space-y-4 p-6 bg-indigo-500/5 rounded-[2rem] border border-indigo-500/10">
                                         <h4 className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">Layout Sequence Config</h4>
                                         <div className="space-y-3">
-                                            {[
+                                            {(settings.find(s => s.key === 'ui_layout_config')?.value?.features || [
                                                 { feature: 'Ecosystem Status Header', enabled: true },
                                                 { feature: 'Neural Reasoning Flow', enabled: true },
                                                 { feature: 'Revenue Analytics Beta', enabled: false },
                                                 { feature: 'Legacy Task List', enabled: false },
-                                            ].map((f, i) => (
+                                            ]).map((f, i) => (
                                                 <div key={i} className="flex items-center justify-between">
                                                     <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{f.feature}</span>
-                                                    <div className={clsx("w-10 h-5 rounded-full p-1 cursor-pointer transition-colors", f.enabled ? "bg-indigo-500" : "bg-slate-300 dark:bg-white/10")}>
+                                                    <button
+                                                        onClick={() => handleUpdateLayoutFeature(i, !f.enabled)}
+                                                        className={clsx("w-10 h-5 rounded-full p-1 cursor-pointer transition-colors relative", f.enabled ? "bg-indigo-500" : "bg-slate-300 dark:bg-white/10")}
+                                                    >
                                                         <div className={clsx("w-3 h-3 bg-white rounded-full transition-transform", f.enabled ? "translate-x-5" : "translate-x-0")} />
-                                                    </div>
+                                                    </button>
                                                 </div>
                                             ))}
                                         </div>
