@@ -165,6 +165,32 @@ function AdminPage() {
         }
     };
 
+    const handleAddFirewallRule = async (rule) => {
+        const currentRules = settings.find(s => s.key === 'security_firewall_rules')?.value || [];
+        const newRules = [...currentRules, { ...rule, id: Date.now(), created_at: new Date().toISOString() }];
+
+        try {
+            await AdminService.updateSystemSetting('security_firewall_rules', newRules);
+            setSettings(settings.map(s => s.key === 'security_firewall_rules' ? { ...s, value: newRules } : s));
+            useUIStore.getState().addNotification('Security firewall updated', 'success');
+        } catch (err) {
+            useUIStore.getState().addNotification('Failed to add firewall rule', 'error');
+        }
+    };
+
+    const handleDeleteFirewallRule = async (ruleId) => {
+        const currentRules = settings.find(s => s.key === 'security_firewall_rules')?.value || [];
+        const newRules = currentRules.filter(r => r.id !== ruleId);
+
+        try {
+            await AdminService.updateSystemSetting('security_firewall_rules', newRules);
+            setSettings(settings.map(s => s.key === 'security_firewall_rules' ? { ...s, value: newRules } : s));
+            useUIStore.getState().addNotification('Rule purged from firewall', 'warning');
+        } catch (err) {
+            useUIStore.getState().addNotification('Rule deletion failed', 'error');
+        }
+    };
+
     if (!user.is_admin) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
@@ -718,6 +744,178 @@ function AdminPage() {
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'security' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 space-y-8">
+                                <div className="bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-10 rounded-[3rem] border border-slate-200/60 dark:border-white/10 shadow-2xl">
+                                    <div className="flex justify-between items-center mb-10">
+                                        <div>
+                                            <h3 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Firewall & Guard</h3>
+                                            <p className="text-sm text-slate-400 font-medium">Control ingress access and define real-time security restrictions.</p>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                const ip = prompt("Enter IP Address to block:");
+                                                if (ip) handleAddFirewallRule({ type: 'block', value: ip, note: 'Manual entry' });
+                                            }}
+                                            className="px-6 py-3 bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-rose-500/20 hover:scale-105 transition-all"
+                                        >
+                                            Add Block Rule
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        {(settings.find(s => s.key === 'security_firewall_rules')?.value || []).length === 0 ? (
+                                            <div className="py-20 text-center border-2 border-dashed border-slate-200 dark:border-white/10 rounded-[2rem] opacity-30">
+                                                <ShieldAlert size={48} className="mx-auto mb-4" />
+                                                <p className="text-xs font-black uppercase tracking-widest">No active security rules</p>
+                                            </div>
+                                        ) : (
+                                            (settings.find(s => s.key === 'security_firewall_rules')?.value || []).map((rule) => (
+                                                <div key={rule.id} className="flex items-center justify-between p-6 bg-slate-50 dark:bg-white/[0.03] rounded-3xl border border-slate-100 dark:border-white/5">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-10 h-10 rounded-xl bg-rose-500 text-white flex items-center justify-center shadow-lg">
+                                                            <ShieldAlert size={20} />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm font-black text-slate-900 dark:text-white font-mono">{rule.value}</p>
+                                                            <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">POLICY: {rule.type.toUpperCase()} • {new Date(rule.created_at).toLocaleDateString()}</p>
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => handleDeleteFirewallRule(rule.id)}
+                                                        className="p-3 text-slate-400 hover:text-rose-500 transition-colors"
+                                                    >
+                                                        <Trash2 size={18} />
+                                                    </button>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-10 rounded-[3rem] border border-slate-200/60 dark:border-white/10 shadow-2xl">
+                                    <h3 className="text-xl font-black text-slate-900 dark:text-white mb-8 uppercase tracking-tight">System Governance</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {[
+                                            { key: 'sec_hardened_rls', label: 'Hardened Metadata RLS', desc: 'Prevent cross-node data leaks', enabled: true },
+                                            { key: 'sec_maintenance_mode', label: 'Global Maintenance', desc: 'Restrict app to Admin access only', enabled: false },
+                                            { key: 'sec_audit_all', label: 'Universal Audit Log', desc: 'Record every write transition', enabled: true },
+                                            { key: 'sec_threat_shield', label: 'Real-time Threat Shield', desc: 'Auto-block suspicious agent activity', enabled: true }
+                                        ].map((g, i) => (
+                                            <div key={i} className="p-6 bg-slate-50 dark:bg-white/[0.03] rounded-3xl border border-slate-100 dark:border-white/5 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <span className="text-sm font-black text-slate-900 dark:text-white tracking-tight">{g.label}</span>
+                                                        <div className={clsx("w-10 h-5 rounded-full p-1 cursor-pointer transition-colors relative", g.enabled ? "bg-emerald-500" : "bg-slate-300 dark:bg-white/10")}>
+                                                            <div className={clsx("w-3 h-3 bg-white rounded-full transition-transform", g.enabled ? "translate-x-5" : "translate-x-0")} />
+                                                        </div>
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-400 font-medium leading-relaxed">{g.desc}</p>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-slate-900 rounded-[3rem] p-10 shadow-2xl border border-white/5 relative overflow-hidden flex flex-col h-full min-h-[600px]">
+                                <div className="absolute top-0 right-0 p-10 opacity-5"><Terminal size={150} /></div>
+                                <h3 className="text-xl font-black text-white mb-8 uppercase tracking-tight relative z-10 flex items-center gap-3">
+                                    <Terminal size={24} className="text-indigo-500" />
+                                    <span>Access Audit Log</span>
+                                </h3>
+
+                                <div className="space-y-4 relative z-10 overflow-y-auto max-h-[700px] pr-2 custom-scrollbar">
+                                    {[
+                                        { action: 'Admin Login', subject: 'evershining17@proton.me', ip: '192.168.1.1', time: 'Just now', severity: 'low' },
+                                        { action: 'Rule Created', subject: 'evershining17@proton.me', ip: '192.168.1.1', time: '12m ago', severity: 'info' },
+                                        { action: 'Failed Auth', subject: 'unknown@x.com', ip: '45.12.89.2', time: '1h ago', severity: 'warning' },
+                                        { action: 'Tier Elevation', subject: 'evershining17@proton.me', ip: '192.168.1.1', time: '2h ago', severity: 'info' },
+                                        { action: 'DB Backup', subject: 'System', ip: 'Internal', time: '5h ago', severity: 'low' }
+                                    ].map((l, i) => (
+                                        <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-1">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-[10px] font-black text-white uppercase tracking-widest">{l.action}</span>
+                                                <span className={clsx("text-[8px] font-black px-2 py-0.5 rounded-full uppercase",
+                                                    l.severity === 'warning' ? 'bg-rose-500 text-white' : 'bg-white/10 text-white/40'
+                                                )}>{l.severity}</span>
+                                            </div>
+                                            <p className="text-[9px] text-indigo-400 font-mono italic truncate">{l.subject}</p>
+                                            <div className="flex justify-between text-[8px] font-bold text-white/20 uppercase tracking-widest">
+                                                <span>{l.ip}</span>
+                                                <span>{l.time}</span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {activeTab === 'monetization' && (
+                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                            <div className="lg:col-span-2 bg-white dark:bg-slate-900/50 backdrop-blur-3xl p-10 rounded-[3rem] border border-slate-200/60 dark:border-white/10 shadow-2xl">
+                                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-10 flex items-center gap-3 italic">
+                                    <DollarSign className="text-amber-500" />
+                                    <span>Economic Prosperity Index</span>
+                                </h3>
+                                <div className="h-[400px] flex items-end justify-between gap-4 px-6 relative">
+                                    <div className="absolute inset-x-0 bottom-0 h-full border-b border-slate-100 dark:border-white/5 opacity-50 flex flex-col justify-between py-10">
+                                        {[...Array(5)].map((_, i) => <div key={i} className="border-t border-slate-100 dark:border-white/5 w-full" />)}
+                                    </div>
+
+                                    {[30, 45, 38, 55, 62, 75, 90, 85, 120, 110, 140, 180].map((v, i) => (
+                                        <div key={i} className="flex-1 group relative z-10">
+                                            <div
+                                                className="w-full bg-gradient-to-t from-amber-500/10 to-amber-500 rounded-2xl transition-all group-hover:brightness-125 cursor-pointer shadow-xl shadow-amber-500/10"
+                                                style={{ height: `${(v / 200) * 100}%` }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="bg-amber-500 p-8 rounded-[3rem] text-white shadow-2xl shadow-amber-500/20 relative overflow-hidden group">
+                                    <h4 className="text-[10px] font-black uppercase tracking-[0.3em] mb-2 opacity-60">Reserved Liquidity</h4>
+                                    <p className="text-4xl font-black tracking-tighter mb-8">$1,248,500.00</p>
+                                    <button className="w-full py-4 bg-white text-amber-500 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg hover:translate-y-[-2px] transition-transform">
+                                        Access Stripe Portal
+                                    </button>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                )}
+
+                {activeTab === 'feedback' && (
+                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-[3rem] border border-slate-200/60 dark:border-white/5 shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        <div className="p-10 border-b border-slate-100 dark:border-white/5">
+                            <h2 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter">Subject Sentiment</h2>
+                            <p className="text-sm text-slate-500 font-medium tracking-tight">Direct neural transmissions from your users.</p>
+                        </div>
+
+                        <div className="p-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {feedback.length === 0 ? (
+                                <div className="col-span-full py-40 text-center space-y-4 opacity-30">
+                                    <Mail size={64} className="mx-auto" />
+                                    <p className="text-sm font-black uppercase tracking-widest italic">The subjects are currently silent.</p>
+                                </div>
+                            ) : (
+                                feedback.map((f) => (
+                                    <div key={f.id} className="bg-slate-50 dark:bg-white/[0.02] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-sm hover:scale-[1.02] transition-all group">
+                                        <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed mb-6">"{f.message}"</p>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
                 )}
