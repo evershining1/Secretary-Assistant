@@ -7,6 +7,7 @@ import { supabase } from '../../lib/supabase';
 class GoogleOAuthService {
     constructor() {
         this.clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+        this.clientSecret = import.meta.env.VITE_GOOGLE_CLIENT_SECRET;
         this.redirectUri = `${window.location.origin}/auth/google/callback`;
         this.scope = 'https://www.googleapis.com/auth/calendar';
     }
@@ -55,10 +56,11 @@ class GoogleOAuthService {
         // Exchange code for tokens
         const response = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
                 code,
                 client_id: this.clientId,
+                client_secret: this.clientSecret,
                 redirect_uri: this.redirectUri,
                 grant_type: 'authorization_code',
                 code_verifier: codeVerifier
@@ -66,7 +68,9 @@ class GoogleOAuthService {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to exchange code for token');
+            const errorData = await response.json();
+            console.error('Google token exchange error:', errorData);
+            throw new Error(`Google API Error: ${errorData.error_description || errorData.error || 'Failed to exchange code for token'}`);
         }
 
         const tokens = await response.json();
@@ -137,9 +141,10 @@ class GoogleOAuthService {
     async refreshAccessToken(refreshToken) {
         const response = await fetch('https://oauth2.googleapis.com/token', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
                 client_id: this.clientId,
+                client_secret: this.clientSecret,
                 refresh_token: refreshToken,
                 grant_type: 'refresh_token'
             })

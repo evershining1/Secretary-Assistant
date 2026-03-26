@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import GoogleOAuth from '../../services/auth/GoogleOAuth';
 
+import logoImg from '../../assets/logo.png';
+
 /**
  * OAuth Callback Handler
  * Handles OAuth redirects from Google, Outlook, Apple
@@ -60,20 +62,34 @@ function OAuthCallback() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-skin-primary">
-            <div className="bg-skin-secondary p-8 rounded-2xl shadow-lg max-w-md w-full text-center">
-                <div className="mb-4">
+            <div className="bg-skin-secondary p-8 rounded-[2.5rem] shadow-2xl shadow-skin-accent/5 border border-slate-200/50 dark:border-white/5 max-w-sm w-full text-center relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-skin-primary via-skin-accent to-skin-primary opacity-50"></div>
+
+                <div className="flex justify-center mb-6">
                     {error ? (
-                        <div className="text-red-600 text-5xl mb-4">✗</div>
+                        <div className="w-20 h-20 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center text-4xl shadow-inner">
+                            ✗
+                        </div>
                     ) : (
-                        <div className="animate-spin text-skin-accent text-5xl mb-4">⟳</div>
+                        <div className="relative">
+                            <div className="absolute inset-0 bg-skin-accent blur-xl opacity-30 animate-pulse"></div>
+                            <img
+                                src={logoImg}
+                                alt="Secretary"
+                                className="w-20 h-20 rounded-2xl shadow-xl shadow-skin-accent/20 object-cover relative z-10 animate-pulse"
+                            />
+                        </div>
                     )}
                 </div>
-                <h2 className="text-2xl font-bold text-skin-text mb-2">{status}</h2>
+
+                <h2 className="text-xl font-black tracking-tight text-slate-900 dark:text-white mb-2">{status}</h2>
                 {error && (
-                    <p className="text-red-600 text-sm mt-4">{error}</p>
+                    <p className="text-red-500 text-xs font-medium uppercase tracking-widest mt-4 bg-red-500/5 p-3 rounded-xl border border-red-500/10">
+                        {error.replace('Google API Error:', '')}
+                    </p>
                 )}
                 {!error && (
-                    <p className="text-skin-muted text-sm">Please wait...</p>
+                    <p className="text-slate-400 text-sm font-medium">Securing neural link...</p>
                 )}
             </div>
         </div>
